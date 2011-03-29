@@ -1,5 +1,6 @@
 #include "GGProtocol.h"
 
+#include "SDK/constants.h"
 #include "GGEditWindow.h"
 #include "GGAccount.h"
 
@@ -7,7 +8,7 @@ using namespace KittySDK;
 
 KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
 {
-  m_info = new PluginInfo("GGProtocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/");
+  m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", Icons::I_INFO);
   m_editWindow = 0;
 }
 
@@ -26,7 +27,7 @@ KittySDK::Account *KittySDK::GGProtocol::newAccount(const QString &uid)
 QWidget *KittySDK::GGProtocol::editWindow(KittySDK::Account *account)
 {
   if(!m_editWindow) {
-    m_editWindow = new KittySDK::GGEditWindow();
+    m_editWindow = new KittySDK::GGEditWindow(account, this);
   }
 
   return m_editWindow;

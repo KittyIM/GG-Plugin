@@ -15,7 +15,7 @@ namespace KittySDK
       ~GGProtocol();
 
       Account *newAccount(const QString &uid);
-      QWidget *editWindow(Account *account);
+      QWidget *editWindow(Account *account = 0);
 
     private:
       GGEditWindow *m_editWindow;

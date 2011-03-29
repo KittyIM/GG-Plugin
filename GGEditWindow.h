@@ -5,6 +5,9 @@
 
 namespace KittySDK
 {
+  class Account;
+  class Protocol;
+
   namespace Ui
   {
     class GGEditWindow;
@@ -15,11 +18,21 @@ namespace KittySDK
     Q_OBJECT
 
     public:
-      explicit GGEditWindow(QWidget *parent = 0);
+      GGEditWindow(KittySDK::Account *account, KittySDK::Protocol *proto, QWidget *parent = 0);
       ~GGEditWindow();
+
+      void reset();
+
+    protected:
+      void showEvent(QShowEvent *event);
+
+    private slots:
+      void on_buttonBox_accepted();
 
     private:
       Ui::GGEditWindow *m_ui;
+      KittySDK::Protocol *m_protocol;
+      KittySDK::Account *m_account;
   };
 }
 

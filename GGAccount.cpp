@@ -7,7 +7,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, Protocol *parent): KittySDK::
 
 }
 
-quint32 KittySDK::GGAccount::ggUid() const
+quint32 KittySDK::GGAccount::uin() const
 {
   return m_uid.toUInt();
 }

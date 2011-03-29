@@ -14,7 +14,7 @@ namespace KittySDK
     public:
       GGAccount(const QString &uid, Protocol *parent);
 
-      quint32 ggUid() const;
+      quint32 uin() const;
   };
 }
 
