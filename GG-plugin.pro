@@ -13,6 +13,10 @@ HEADERS += GGProtocol.h \
            SDK/PluginCore.h \
            SDK/Plugin.h \
            SDK/constants.h \
-           SDK/Account.h
+           SDK/Account.h \
+    constants.h
 
 FORMS   += GGEditWindow.ui
+
+RESOURCES += \
+    res.qrc
