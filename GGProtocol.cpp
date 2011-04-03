@@ -29,6 +29,36 @@ KittySDK::GGProtocol::~GGProtocol()
   }
 }
 
+QString KittySDK::GGProtocol::statusIcon(KittySDK::Protocol::Status status)
+{
+  switch(status) {
+    case Online:
+      return KittyGG::Icons::I_AVAILABLE;
+    break;
+
+    case Away:
+      return KittyGG::Icons::I_AWAY;
+    break;
+
+    case FFC:
+      return KittyGG::Icons::I_FFC;
+    break;
+
+    case DND:
+      return KittyGG::Icons::I_DND;
+    break;
+
+    case Invisible:
+      return KittyGG::Icons::I_INVISIBLE;
+    break;
+
+    case Offline:
+    default:
+      return KittyGG::Icons::I_UNAVAILABLE;
+    break;
+  }
+}
+
 KittySDK::Account *KittySDK::GGProtocol::newAccount(const QString &uid)
 {
   return new KittySDK::GGAccount(uid, this);

@@ -14,6 +14,7 @@ namespace KittySDK
       GGProtocol(PluginCore *core);
       ~GGProtocol();
 
+      QString statusIcon(KittySDK::Protocol::Status status);
       Account *newAccount(const QString &uid);
       QWidget *editWindow(Account *account = 0);
 

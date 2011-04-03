@@ -16,11 +16,15 @@ namespace KittySDK
       ~GGAccount();
 
       quint32 uin() const;
+      KittySDK::Protocol::Status status() const;
 
     public slots:
       void loadSettings(const QMap<QString, QVariant> &settings);
       QMap<QString, QVariant> saveSettings();
       QMenu *statusMenu();
+
+    private slots:
+      void setStatusAvailable();
 
     private:
       QMenu *m_statusMenu;

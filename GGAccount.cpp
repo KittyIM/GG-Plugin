@@ -12,6 +12,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, Protocol *parent): KittySDK::
   m_statusMenu = new QMenu();
 
   m_availableAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_AVAILABLE), tr("Available"), this);
+  connect(m_availableAction, SIGNAL(triggered()), this, SLOT(setStatusAvailable()));
   m_statusMenu->addAction(m_availableAction);
 
   m_awayAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_AWAY), tr("Be right back"), this);
@@ -40,6 +41,11 @@ quint32 KittySDK::GGAccount::uin() const
   return m_uid.toUInt();
 }
 
+KittySDK::Protocol::Status KittySDK::GGAccount::status() const
+{
+  return KittySDK::Protocol::Away;
+}
+
 void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 {
   qDebug() << settings;
@@ -57,5 +63,10 @@ QMap<QString, QVariant> KittySDK::GGAccount::saveSettings()
 QMenu *KittySDK::GGAccount::statusMenu()
 {
   return m_statusMenu;
+}
+
+void KittySDK::GGAccount::setStatusAvailable()
+{
+  emit statusChanged();
 }
 
