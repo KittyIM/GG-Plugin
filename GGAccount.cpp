@@ -1,6 +1,8 @@
 #include "GGAccount.h"
 
+#include "GGContact.h"
 #include "constants.h"
+#include "GGClient.h"
 
 #include <QtCore/QDebug>
 #include <QtGui/QMenu>
@@ -9,6 +11,8 @@ using namespace KittySDK;
 
 KittySDK::GGAccount::GGAccount(const QString &uid, Protocol *parent): KittySDK::Account(uid, parent)
 {
+  m_client = new GGClient(this);
+
   m_statusMenu = new QMenu();
 
   m_availableAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_AVAILABLE), tr("Available"), this);
@@ -16,18 +20,23 @@ KittySDK::GGAccount::GGAccount(const QString &uid, Protocol *parent): KittySDK::
   m_statusMenu->addAction(m_availableAction);
 
   m_awayAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_AWAY), tr("Be right back"), this);
+  connect(m_awayAction, SIGNAL(triggered()), this, SLOT(setStatusAway()));
   m_statusMenu->addAction(m_awayAction);
 
   m_ffcAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_FFC), tr("Free for chat"), this);
+  connect(m_ffcAction, SIGNAL(triggered()), this, SLOT(setStatusFFC()));
   m_statusMenu->addAction(m_ffcAction);
 
   m_dndAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_DND), tr("Do not disturb"), this);
+  connect(m_dndAction, SIGNAL(triggered()), this, SLOT(setStatusDND()));
   m_statusMenu->addAction(m_dndAction);
 
   m_invisibleAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_INVISIBLE), tr("Invisible"), this);
+  connect(m_invisibleAction, SIGNAL(triggered()), this, SLOT(setStatusInvisible()));
   m_statusMenu->addAction(m_invisibleAction);
 
   m_unavailableAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_UNAVAILABLE), tr("Unavailable"), this);
+  connect(m_unavailableAction, SIGNAL(triggered()), this, SLOT(setStatusUnavailable()));
   m_statusMenu->addAction(m_unavailableAction);
 }
 
@@ -46,9 +55,16 @@ KittySDK::Protocol::Status KittySDK::GGAccount::status() const
   return KittySDK::Protocol::Away;
 }
 
+KittySDK::Contact *KittySDK::GGAccount::newContact(const QString &uid)
+{
+  KittySDK::GGContact *cnt = new KittySDK::GGContact(uid, this);
+
+  return cnt;
+}
+
 void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 {
-  qDebug() << settings;
+
 }
 
 QMap<QString, QVariant> KittySDK::GGAccount::saveSettings()
@@ -67,6 +83,37 @@ QMenu *KittySDK::GGAccount::statusMenu()
 
 void KittySDK::GGAccount::setStatusAvailable()
 {
-  emit statusChanged();
+  if(!m_client->isConnected()) {
+    m_client->setAccount(uin(), password());
+    m_client->connectToHost();
+  } else {
+    m_client->setStatus(KittyGG::Statuses::S_AVAILABLE);
+  }
+  //emit statusChanged();
+}
+
+void KittySDK::GGAccount::setStatusAway()
+{
+  m_client->setStatus(KittyGG::Statuses::S_BUSY);
+}
+
+void KittySDK::GGAccount::setStatusFFC()
+{
+  m_client->setStatus(KittyGG::Statuses::S_FFC);
+}
+
+void KittySDK::GGAccount::setStatusDND()
+{
+  m_client->setStatus(KittyGG::Statuses::S_DND);
+}
+
+void KittySDK::GGAccount::setStatusInvisible()
+{
+  m_client->setStatus(KittyGG::Statuses::S_INVISIBLE);
+}
+
+void KittySDK::GGAccount::setStatusUnavailable()
+{
+  m_client->setStatus(KittyGG::Statuses::S_UNAVAILABLE);
 }
 

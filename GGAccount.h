@@ -5,6 +5,8 @@
 
 namespace KittySDK
 {
+  class GGClient;
+  class Contact;
   class Protocol;
 
   class GGAccount: public Account
@@ -17,6 +19,7 @@ namespace KittySDK
 
       quint32 uin() const;
       KittySDK::Protocol::Status status() const;
+      KittySDK::Contact *newContact(const QString &uid);
 
     public slots:
       void loadSettings(const QMap<QString, QVariant> &settings);
@@ -25,8 +28,15 @@ namespace KittySDK
 
     private slots:
       void setStatusAvailable();
+      void setStatusAway();
+      void setStatusFFC();
+      void setStatusDND();
+      void setStatusInvisible();
+      void setStatusUnavailable();
+
 
     private:
+      GGClient *m_client;
       QMenu *m_statusMenu;
       QAction *m_availableAction;
       QAction *m_awayAction;
