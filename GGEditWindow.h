@@ -18,10 +18,11 @@ namespace KittySDK
     Q_OBJECT
 
     public:
-      GGEditWindow(KittySDK::Account *account, KittySDK::Protocol *proto, QWidget *parent = 0);
+      GGEditWindow(KittySDK::Protocol *proto, QWidget *parent = 0);
       ~GGEditWindow();
 
       void reset();
+      void setup(KittySDK::Account *account);
 
     protected:
       void showEvent(QShowEvent *event);

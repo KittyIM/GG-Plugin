@@ -2,9 +2,9 @@
 #define GGCLIENT_H
 
 #include <QtCore/QtGlobal>
-#include <QtCore/QTimer>
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtCore/QTimer>
 #include <QtNetwork/QTcpSocket>
 
 namespace KittySDK
@@ -44,6 +44,9 @@ namespace KittySDK
       void setAccount(const quint32 &uin, const QString &passsword);
       bool isConnected();
 
+      void addContact(const quint32 &uin);
+      void removeContact(const quint32 &uin);
+
     public slots:
       void connectToHost(const QString &host = "91.214.237.54", const int &port = 8074);
       void sendMessage(const quint32 &recipient, const QString &text);
@@ -74,9 +77,12 @@ namespace KittySDK
       QString m_password;
       quint32 m_status;
       QString m_description;
+      quint32 m_initialStatus;
+      QString m_initialDescription;
       QTimer m_pingTimer;
       QTcpSocket *m_socket;
       QByteArray m_buffer;
+      QList<quint32> m_roster;
   };
 }
 

@@ -54,12 +54,18 @@ namespace KittyGG
   {
     enum
     {
-      S_UNAVAILABLE	= 0x0001,
-      S_FFC	        = 0x0017,
-      S_AVAILABLE	  = 0x0002,
-      S_BUSY        = 0x0003,
-      S_DND         = 0x0021,
-      S_INVISIBLE   = 0x0014
+      S_UNAVAILABLE	  = 0x0001,
+      S_UNAVAILABLE_D =	0x0015,
+      S_FFC	          = 0x0017,
+      S_FFC_D	        = 0x0018,
+      S_AVAILABLE	    = 0x0002,
+      S_AVAILABLE_D	  = 0x0004,
+      S_BUSY          = 0x0003,
+      S_BUSY_D        = 0x0005,
+      S_DND           = 0x0021,
+      S_DND_D         = 0x0022,
+      S_INVISIBLE     = 0x0014,
+      S_INVISIBLE_D   = 0x0016
     };
   }
 

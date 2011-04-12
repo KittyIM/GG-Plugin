@@ -4,6 +4,7 @@
 #include "SDK/Contact.h"
 #include "GGAccount.h"
 
+
 namespace KittySDK
 {
   class GGContact: public Contact
@@ -13,6 +14,10 @@ namespace KittySDK
     public:
       GGContact(const QString &uid, GGAccount *account);
       ~GGContact();
+
+      void prepareContextMenu(QMenu *menu);
+
+      void changeStatus(const quint32 &status, const QString &description);
   };
 }
 

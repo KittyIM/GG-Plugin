@@ -21,8 +21,10 @@ GGClient::GGClient(QObject *parent): QObject(parent)
 
   connect(&m_pingTimer, SIGNAL(timeout()), this, SLOT(sendPingPacket()));
 
-  m_status = KittyGG::Statuses::S_AVAILABLE;
-  m_description = "Kitty is alive!";
+  m_status = KittyGG::Statuses::S_UNAVAILABLE;
+
+  m_initialStatus = KittyGG::Statuses::S_AVAILABLE;
+  m_initialDescription = "Kitty is alive!";
 
   m_pingTimer.setInterval(3 * 60 * 1000);
 }
@@ -61,10 +63,24 @@ bool GGClient::isConnected()
   return (m_socket->state() == QAbstractSocket::ConnectedState);
 }
 
+void GGClient::addContact(const quint32 &uin)
+{
+  if(!m_roster.contains(uin)) {
+    m_roster.append(uin);
+  }
+}
+
+void GGClient::removeContact(const quint32 &uin)
+{
+  m_roster.removeAll(uin);
+}
+
 void GGClient::connectToHost(const QString &host, const int &port)
 {
-  setHost(host);
-  setPort(port);
+  m_host = host;
+  m_port = port;
+  m_status = m_initialStatus;
+  m_description = m_initialDescription;
 
   m_socket->connectToHost(host, port);
 }
@@ -115,24 +131,22 @@ void GGClient::readSocket()
 {
   m_buffer.append(m_socket->readAll());
 
-  QDataStream str(m_buffer);
-  str.setByteOrder(QDataStream::LittleEndian);
+  quint32 type, length;
 
   while(m_buffer.size() > 0) {
-    quint32 type;
-    str >> type;
+    QDataStream str(m_buffer);
+    str.setByteOrder(QDataStream::LittleEndian);
 
-    quint32 length;
-    str >> length;
+    str >> type >> length;
 
     qDebug() << "New packet (" << type << ", " << length << ")";
 
-    if(m_buffer.size() < (int)length + 8) {
+    if(m_buffer.size() < (int)(length + sizeof(quint32) * 2)) {
       qDebug() << "But it's not complete";
       return;
     }
 
-    m_buffer = m_buffer.mid(8);
+    m_buffer = m_buffer.mid(sizeof(quint32) * 2);
 
     processPacket(type, length);
   }
@@ -141,6 +155,7 @@ void GGClient::readSocket()
 void GGClient::connected()
 {
   qDebug() << "Socket::Connected";
+  //m_thread->start();
 }
 
 void GGClient::disconnected()
@@ -271,6 +286,8 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
           m_status = status;
           m_description = description;
         }
+
+        qDebug() << uin << status << QString::fromAscii(description, description_size);
 
         emit statusChanged(uin, status, QString::fromAscii(description, description_size));
 
@@ -545,7 +562,7 @@ void GGClient::sendLoginPacket(const quint32 &seed)
   data.append((char*)&tmp32, sizeof(tmp32));
 
   // features
-  tmp32 = KittyGG::Features::F_STATUS80 | KittyGG::Features::F_MSG80 | KittyGG::Features::F_NEW_LOGIN | KittyGG::Features::F_DND_FFC | KittyGG::Features::F_TYPING_NOTIFICATION | KittyGG::Features::F_USER_DATA;
+  tmp32 = KittyGG::Features::F_STATUS80 | KittyGG::Features::F_MSG80 | KittyGG::Features::F_NEW_LOGIN | KittyGG::Features::F_DND_FFC | KittyGG::Features::F_IMAGE_DESCR |  KittyGG::Features::F_TYPING_NOTIFICATION | KittyGG::Features::F_USER_DATA;
   data.append((char*)&tmp32, sizeof(tmp32));
 
   // deprecated (local_ip, local_port, external_ip, external_port)
@@ -574,17 +591,12 @@ void GGClient::sendLoginPacket(const quint32 &seed)
 
 void GGClient::sendRosterPacket()
 {
-  QList<quint32> roster;
-  roster.append(1021494);
-  roster.append(4109502);
-  roster.append(4538103);
-
-  int count = roster.size();
-
-  if(roster.empty()) {
+  if(m_roster.empty()) {
     sendPacket(KittyGG::Packets::P_LIST_EMPTY);
     return;
   }
+
+  int count = m_roster.size();
 
   while(count > 0) {
     QByteArray data;
@@ -601,7 +613,7 @@ void GGClient::sendRosterPacket()
     data.resize((sizeof(quint32) + sizeof(quint8)) * part_count);
 
     for(int i = 0; i < part_count; i++) {
-      data.append((char*)&roster.at(i), 4);
+      data.append((char*)&m_roster.at(i), 4);
       data.append(0x03);
     }
 

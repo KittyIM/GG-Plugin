@@ -19,7 +19,7 @@ KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
   core->addIcon(KittyGG::Icons::I_INVISIBLE, QPixmap(":/glyphs/invisible.png"));
   core->addIcon(KittyGG::Icons::I_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
 
-  setAbilities(TextBold | TextItalics | TextUnderline | TextStriketrough | TextColor | BackgroundColor | SendImages | SendFiles | ChangeStatus | BlockContacts);
+  setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts);
 }
 
 KittySDK::GGProtocol::~GGProtocol()
@@ -67,10 +67,44 @@ KittySDK::Account *KittySDK::GGProtocol::newAccount(const QString &uid)
 QWidget *KittySDK::GGProtocol::editWindow(KittySDK::Account *account)
 {
   if(!m_editWindow) {
-    m_editWindow = new KittySDK::GGEditWindow(account, this);
+    m_editWindow = new KittySDK::GGEditWindow(this);
   }
 
+  m_editWindow->setup(account);
+
   return m_editWindow;
+}
+
+KittySDK::Protocol::Status KittySDK::GGProtocol::convertStatus(const quint32 &status) const
+{
+  switch(status & ~0x4000) {
+    case KittyGG::Statuses::S_AVAILABLE:
+    case KittyGG::Statuses::S_AVAILABLE_D:
+      return KittySDK::Protocol::Online;
+    break;
+
+    case KittyGG::Statuses::S_BUSY:
+    case KittyGG::Statuses::S_BUSY_D:
+      return KittySDK::Protocol::Away;
+    break;
+
+    case KittyGG::Statuses::S_DND:
+    case KittyGG::Statuses::S_DND_D:
+      return KittySDK::Protocol::DND;
+    break;
+
+    case KittyGG::Statuses::S_FFC:
+    case KittyGG::Statuses::S_FFC_D:
+      return KittySDK::Protocol::FFC;
+    break;
+
+    case KittyGG::Statuses::S_INVISIBLE:
+    case KittyGG::Statuses::S_INVISIBLE_D:
+      return KittySDK::Protocol::Invisible;
+    break;
+  }
+
+  return KittySDK::Protocol::Offline;
 }
 
 KITTY_PLUGIN(GGProtocol)

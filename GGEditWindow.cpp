@@ -7,23 +7,11 @@
 #include <QtGui/QDesktopWidget>
 #include <QtGui/QMessageBox>
 
-KittySDK::GGEditWindow::GGEditWindow(KittySDK::Account *account, KittySDK::Protocol *proto, QWidget *parent): QWidget(parent), m_ui(new Ui::GGEditWindow), m_protocol(proto)
+KittySDK::GGEditWindow::GGEditWindow(KittySDK::Protocol *proto, QWidget *parent): QWidget(parent), m_ui(new Ui::GGEditWindow), m_protocol(proto)
 {
   m_ui->setupUi(this);
 
   setWindowFlags(windowFlags() & ~Qt::WindowMinMaxButtonsHint);
-
-  reset();
-
-  if(!account) {
-    m_account = new KittySDK::GGAccount("", proto);
-  } else {
-    m_account = dynamic_cast<KittySDK::GGAccount*>(account);
-
-    m_ui->uinLineEdit->setText(m_account->uid());
-    m_ui->uinLineEdit->setEnabled(false);
-    m_ui->passwordLineEdit->setText(m_account->password());
-  }
 }
 
 KittySDK::GGEditWindow::~GGEditWindow()
@@ -36,6 +24,21 @@ void KittySDK::GGEditWindow::reset()
   m_ui->uinLineEdit->clear();
   m_ui->uinLineEdit->setEnabled(true);
   m_ui->passwordLineEdit->clear();
+}
+
+void KittySDK::GGEditWindow::setup(KittySDK::Account *account)
+{
+  reset();
+
+  if(!account) {
+    m_account = new KittySDK::GGAccount("", dynamic_cast<KittySDK::GGProtocol*>(m_protocol));
+  } else {
+    m_account = dynamic_cast<KittySDK::GGAccount*>(account);
+
+    m_ui->uinLineEdit->setText(m_account->uid());
+    m_ui->uinLineEdit->setEnabled(false);
+    m_ui->passwordLineEdit->setText(m_account->password());
+  }
 }
 
 void KittySDK::GGEditWindow::showEvent(QShowEvent *event)

@@ -18,6 +18,8 @@ namespace KittySDK
       Account *newAccount(const QString &uid);
       QWidget *editWindow(Account *account = 0);
 
+      Status convertStatus(const quint32 &status) const;
+
     private:
       GGEditWindow *m_editWindow;
   };

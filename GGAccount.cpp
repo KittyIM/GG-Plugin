@@ -9,9 +9,10 @@
 
 using namespace KittySDK;
 
-KittySDK::GGAccount::GGAccount(const QString &uid, Protocol *parent): KittySDK::Account(uid, parent)
+KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): KittySDK::Account(uid, parent)
 {
   m_client = new GGClient(this);
+  connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
 
   m_statusMenu = new QMenu();
 
@@ -52,7 +53,7 @@ quint32 KittySDK::GGAccount::uin() const
 
 KittySDK::Protocol::Status KittySDK::GGAccount::status() const
 {
-  return KittySDK::Protocol::Away;
+  return dynamic_cast<KittySDK::GGProtocol*>(protocol())->convertStatus(m_client->status());
 }
 
 KittySDK::Contact *KittySDK::GGAccount::newContact(const QString &uid)
@@ -60,6 +61,13 @@ KittySDK::Contact *KittySDK::GGAccount::newContact(const QString &uid)
   KittySDK::GGContact *cnt = new KittySDK::GGContact(uid, this);
 
   return cnt;
+}
+
+void KittySDK::GGAccount::insertContact(const QString &uid, KittySDK::Contact *contact)
+{
+  Account::insertContact(uid, contact);
+
+  m_client->addContact(uid.toUInt());
 }
 
 void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
@@ -79,6 +87,21 @@ QMap<QString, QVariant> KittySDK::GGAccount::saveSettings()
 QMenu *KittySDK::GGAccount::statusMenu()
 {
   return m_statusMenu;
+}
+
+void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)
+{
+  QString uid = QString::number(uin);
+
+  if(uid == this->uid()) {
+    emit statusChanged();
+  }
+
+  if(contacts().contains(uid)) {
+    dynamic_cast<KittySDK::GGContact*>(contacts().value(uid))->changeStatus(status, description);
+  } else {
+    qDebug() << "Contact not on list" << uid;
+  }
 }
 
 void KittySDK::GGAccount::setStatusAvailable()
