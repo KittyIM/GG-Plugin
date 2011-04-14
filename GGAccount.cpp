@@ -13,6 +13,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): KittySDK
 {
   m_client = new GGClient(this);
   connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
+  connect(m_client, SIGNAL(userDataReceived(quint32,QString,QString)), this, SLOT(processUserData(quint32,QString,QString)));
 
   m_statusMenu = new QMenu();
 
@@ -72,14 +73,14 @@ void KittySDK::GGAccount::insertContact(const QString &uid, KittySDK::Contact *c
 
 void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 {
-
+  m_client->setAccount(uin(), password());
 }
 
 QMap<QString, QVariant> KittySDK::GGAccount::saveSettings()
 {
   QMap<QString, QVariant> settings;
 
-  settings.insert("setting", "value");
+  //settings.insert("setting", "value");
 
   return settings;
 }
@@ -100,19 +101,22 @@ void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 
   if(contacts().contains(uid)) {
     dynamic_cast<KittySDK::GGContact*>(contacts().value(uid))->changeStatus(status, description);
   } else {
-    qDebug() << "Contact not on list" << uid;
+    qWarning() << "Contact not on list" << uid;
+  }
+}
+
+void KittySDK::GGAccount::processUserData(const quint32 &uin, const QString &name, const QString &data)
+{
+  QString uid = QString::number(uin);
+
+  if(contacts().contains(uid)) {
+    dynamic_cast<KittySDK::GGContact*>(contacts().value(uid))->setData(name, data);
   }
 }
 
 void KittySDK::GGAccount::setStatusAvailable()
 {
-  if(!m_client->isConnected()) {
-    m_client->setAccount(uin(), password());
-    m_client->connectToHost();
-  } else {
-    m_client->setStatus(KittyGG::Statuses::S_AVAILABLE);
-  }
-  //emit statusChanged();
+  m_client->setStatus(KittyGG::Statuses::S_AVAILABLE);
 }
 
 void KittySDK::GGAccount::setStatusAway()

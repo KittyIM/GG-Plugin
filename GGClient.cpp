@@ -36,9 +36,12 @@ GGClient::~GGClient()
 
 void GGClient::setStatus(const quint32 &status)
 {
-  m_status = status;
+  if(!isConnected()) {
+    m_initialStatus = status;
 
-  if(isConnected()) {
+    connectToHost();
+  } else {
+    m_status = status;
     sendChangeStatusPacket();
   }
 }
@@ -161,6 +164,9 @@ void GGClient::connected()
 void GGClient::disconnected()
 {
   qDebug() << "Socket::Disconnected";
+
+  emit statusChanged(uin(), m_status, m_description);
+
   m_pingTimer.stop();
 }
 
@@ -497,7 +503,7 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
             read += value_size;
           }
 
-          qDebug() << uin << "attr[" << QString::fromAscii(name, name_size) << "] = \"" << QString::fromAscii(value, value_size) << "\"";
+          emit userDataReceived(uin, QString::fromAscii(name, name_size), QString::fromAscii(value, value_size));
 
           num2--;
         }

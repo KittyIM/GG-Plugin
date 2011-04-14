@@ -54,6 +54,7 @@ namespace KittySDK
     signals:
       void statusChanged(const quint32 &uin, const quint32 &status, const QString &description);
       void messageReceived(const quint32 &sender, const QDateTime &time, const QString &plain);
+      void userDataReceived(const quint32 &uin, const QString &name, const QString &data);
 
     private slots:
       void readSocket();

@@ -2,6 +2,7 @@
 #define CONSTANTS_H
 
 #define qDebug() qDebug() << "[KittyGG] "
+#define qWarning() qWarning() << "[KittyGG] "
 
 namespace KittyGG
 {

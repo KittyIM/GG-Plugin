@@ -31,6 +31,7 @@ namespace KittySDK
 
     private slots:
       void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
+      void processUserData(const quint32 &uin, const QString &name, const QString &data);
       void setStatusAvailable();
       void setStatusAway();
       void setStatusFFC();
