@@ -306,6 +306,19 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
     }
     break;
 
+    case KittyGG::Packets::P_XML_ACTION:
+    {
+      qDebug() << "It's P_XML_ACTION";
+
+      char *data = new char[length];
+      str.readRawData(data, length);
+
+      emit xmlActionReceived(QString::fromAscii(data, length));
+
+      m_buffer = m_buffer.mid(length);
+    }
+    break;
+
     case KittyGG::Packets::P_MSG_RECV:
     {
       qDebug() << "It's P_MSG_RECV";

@@ -29,6 +29,7 @@ namespace KittyGG
       P_NOTIFY_FIRST   = 0x0f,
       P_NOTIFY_LAST    = 0x10,
       P_LIST_EMPTY     = 0x12,
+      P_XML_ACTION     = 0x2c,
       P_MSG_SEND       = 0x2d,
       P_MSG_RECV       = 0x2e,
       P_LOGIN          = 0x31,

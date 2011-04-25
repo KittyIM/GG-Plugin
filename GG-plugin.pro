@@ -20,7 +20,9 @@ HEADERS   += GGProtocol.h \
              constants.h \
              GGContact.h \
              SDK/Contact.h \
-             GGClient.h
+             GGClient.h \
+    SDK/Message.h \
+    SDK/Chat.h
 
 FORMS     += GGEditWindow.ui
 
