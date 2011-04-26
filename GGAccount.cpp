@@ -1,5 +1,6 @@
 #include "GGAccount.h"
 
+#include "SDK/Message.h"
 #include "GGContact.h"
 #include "constants.h"
 #include "GGClient.h"
@@ -88,6 +89,12 @@ QMap<QString, QVariant> KittySDK::GGAccount::saveSettings()
 QMenu *KittySDK::GGAccount::statusMenu()
 {
   return m_statusMenu;
+}
+
+void KittySDK::GGAccount::sendMessage(const KittySDK::Message &msg)
+{
+  GGContact *cnt = dynamic_cast<GGContact*>(msg.to().first());
+  m_client->sendMessage(cnt->uin(), msg.body());
 }
 
 void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)

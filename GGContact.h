@@ -16,6 +16,8 @@ namespace KittySDK
       GGContact(const QString &uid, GGAccount *account);
       ~GGContact();
 
+      quint32 uin() const;
+
       void prepareContextMenu(QMenu *menu);
       void changeStatus(const quint32 &status, const QString &description);
       void setData(const QString &name, const QString &data);

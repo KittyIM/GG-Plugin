@@ -32,6 +32,11 @@ void KittySDK::GGContact::setData(const QString &name, const QString &data)
   }
 }
 
+quint32 KittySDK::GGContact::uin() const
+{
+  return uid().toUInt();
+}
+
 void KittySDK::GGContact::prepareContextMenu(QMenu *menu)
 {
   menu->addAction(tr("Update avatar"), this, SLOT(updateAvatar()));
