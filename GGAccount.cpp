@@ -16,6 +16,9 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): KittySDK
   connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
   connect(m_client, SIGNAL(userDataReceived(quint32,QString,QString)), this, SLOT(processUserData(quint32,QString,QString)));
 
+  setMe(new GGContact(uid, this));
+  me()->setDisplay(protocol()->core()->profileName());
+
   m_statusMenu = new QMenu();
 
   m_availableAction = new QAction(protocol()->core()->icon(KittyGG::Icons::I_AVAILABLE), tr("Available"), this);
