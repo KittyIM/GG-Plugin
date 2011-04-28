@@ -1,0 +1,8 @@
+
+/debug/*
+/release/*
+/*.pro.user*
+/*Makefile*
+/*ui_*.h
+/*object_script*
+/copy_*
