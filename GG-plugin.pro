@@ -18,11 +18,15 @@ HEADERS   += GGProtocol.h \
              SDK/constants.h \
              SDK/Account.h \
              constants.h \
-             GGContact.h \
+             SDK/GGContact.h \
              SDK/Contact.h \
              GGClient.h \
     SDK/Message.h \
-    SDK/Chat.h
+    SDK/Chat.h \
+    GGConstants.h \
+    SDK/GGConstants.h \
+    GGContact.h \
+    SDK/SoundsConstants.h
 
 FORMS     += GGEditWindow.ui
 

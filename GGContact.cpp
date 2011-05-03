@@ -1,9 +1,16 @@
 #include "GGContact.h"
 
+#include "SDK/SoundsConstants.h"
+
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QFile>
 #include <QtGui/QMenu>
 #include <QtNetwork/QNetworkReply>
+
+#define qDebug() qDebug() << "[GGContact]"
+#define qWarning() qWarning() << "[GGContact]"
+
+using namespace KittySDK;
 
 KittySDK::GGContact::GGContact(const QString &uid, KittySDK::GGAccount *account): KittySDK::Contact(uid, account)
 {
@@ -17,7 +24,15 @@ KittySDK::GGContact::~GGContact()
 
 void KittySDK::GGContact::changeStatus(const quint32 &status, const QString &description)
 {
-  m_status = dynamic_cast<KittySDK::GGProtocol*>(m_account->protocol())->convertStatus(status);
+  KittySDK::Protocol::Status status_conv = dynamic_cast<KittySDK::GGProtocol*>(m_account->protocol())->convertStatus(status);
+
+  if((m_status == KittySDK::Protocol::Offline) && (status_conv < KittySDK::Protocol::Offline)) {
+    QMap<QString, QVariant> args;
+    args.insert("id", Sounds::S_CONTACT_AVAIL);
+    protocol()->core()->execPluginAction("Sounds", "playSound", args);
+  }
+
+  m_status = status_conv;
   m_description = description;
 
   emit statusChanged(m_status, m_description);

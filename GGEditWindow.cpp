@@ -7,6 +7,9 @@
 #include <QtGui/QDesktopWidget>
 #include <QtGui/QMessageBox>
 
+#define qDebug() qDebug() << "[GGEditWindow]"
+#define qWarning() qWarning() << "[GGEditWindow]"
+
 KittySDK::GGEditWindow::GGEditWindow(KittySDK::Protocol *proto, QWidget *parent): QWidget(parent), m_ui(new Ui::GGEditWindow), m_protocol(proto)
 {
   m_ui->setupUi(this);

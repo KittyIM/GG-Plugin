@@ -18,11 +18,16 @@ namespace KittySDK
       void load();
       void unload();
 
+      QString msgToHtml(const QString &msg);
+
       QString statusIcon(KittySDK::Protocol::Status status);
       Account *newAccount(const QString &uid);
       QWidget *editWindow(Account *account = 0);
 
       Status convertStatus(const quint32 &status) const;
+
+    public slots:
+      void execAction(const QString &name, const QMap<QString, QVariant> &args);
 
     private:
       GGEditWindow *m_editWindow;

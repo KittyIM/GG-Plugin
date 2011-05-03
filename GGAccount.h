@@ -19,20 +19,23 @@ namespace KittySDK
       ~GGAccount();
 
       quint32 uin() const;
-      KittySDK::Protocol::Status status() const;
-      KittySDK::Contact *newContact(const QString &uid);
+      Protocol::Status status() const;
+      Contact *newContact(const QString &uid);
+      Contact *newContact(const quint32 &uin);
 
-      void insertContact(const QString &uid, KittySDK::Contact *contact);
+      Contact *contactByUin(const quint32 &uin);
+      void insertContact(const QString &uid, Contact *contact);
 
     public slots:
       void loadSettings(const QMap<QString, QVariant> &settings);
       QMap<QString, QVariant> saveSettings();
       QMenu *statusMenu();
-      void sendMessage(const KittySDK::Message &msg);
+      void sendMessage(const Message &msg);
 
     private slots:
       void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
       void processUserData(const quint32 &uin, const QString &name, const QString &data);
+      void processMessage(const quint32 &sender, const QDateTime &time, const QString &plain);
       void setStatusAvailable();
       void setStatusAway();
       void setStatusFFC();

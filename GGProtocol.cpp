@@ -1,15 +1,19 @@
 #include "GGProtocol.h"
 
+#include "SDK/GGConstants.h"
 #include "SDK/constants.h"
 #include "GGEditWindow.h"
 #include "GGAccount.h"
 #include "constants.h"
 
+#define qDebug() qDebug() << "[GGProtocol]"
+#define qWarning() qWarning() << "[GGProtocol]"
+
 using namespace KittySDK;
 
 KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
 {
-  m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", KittyGG::Icons::I_AVAILABLE);
+  m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", Icons::I_GG_AVAILABLE);
   m_editWindow = 0;
 
   setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts);
@@ -24,13 +28,13 @@ KittySDK::GGProtocol::~GGProtocol()
 
 void KittySDK::GGProtocol::init()
 {
-  qDebug() << "GGProtocol::init()";
-  core()->addIcon(KittyGG::Icons::I_AVAILABLE, QPixmap(":/glyphs/available.png"));
-  core()->addIcon(KittyGG::Icons::I_AWAY, QPixmap(":/glyphs/away.png"));
-  core()->addIcon(KittyGG::Icons::I_DND, QPixmap(":/glyphs/dnd.png"));
-  core()->addIcon(KittyGG::Icons::I_FFC, QPixmap(":/glyphs/ffc.png"));
-  core()->addIcon(KittyGG::Icons::I_INVISIBLE, QPixmap(":/glyphs/invisible.png"));
-  core()->addIcon(KittyGG::Icons::I_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
+  qDebug() << "Init";
+  core()->addIcon(Icons::I_GG_AVAILABLE, QPixmap(":/glyphs/available.png"));
+  core()->addIcon(Icons::I_GG_AWAY, QPixmap(":/glyphs/away.png"));
+  core()->addIcon(Icons::I_GG_DND, QPixmap(":/glyphs/dnd.png"));
+  core()->addIcon(Icons::I_GG_FFC, QPixmap(":/glyphs/ffc.png"));
+  core()->addIcon(Icons::I_GG_INVISIBLE, QPixmap(":/glyphs/invisible.png"));
+  core()->addIcon(Icons::I_GG_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
 }
 
 void KittySDK::GGProtocol::load()
@@ -43,32 +47,41 @@ void KittySDK::GGProtocol::unload()
 
 }
 
+QString KittySDK::GGProtocol::msgToHtml(const QString &msg)
+{
+  QString html = msg;
+
+  html.replace("\r\n", "<br>");
+
+  return html;
+}
+
 QString KittySDK::GGProtocol::statusIcon(KittySDK::Protocol::Status status)
 {
   switch(status) {
     case Online:
-      return KittyGG::Icons::I_AVAILABLE;
+      return Icons::I_GG_AVAILABLE;
     break;
 
     case Away:
-      return KittyGG::Icons::I_AWAY;
+      return Icons::I_GG_AWAY;
     break;
 
     case FFC:
-      return KittyGG::Icons::I_FFC;
+      return Icons::I_GG_FFC;
     break;
 
     case DND:
-      return KittyGG::Icons::I_DND;
+      return Icons::I_GG_DND;
     break;
 
     case Invisible:
-      return KittyGG::Icons::I_INVISIBLE;
+      return Icons::I_GG_INVISIBLE;
     break;
 
     case Offline:
     default:
-      return KittyGG::Icons::I_UNAVAILABLE;
+      return Icons::I_GG_UNAVAILABLE;
     break;
   }
 }
@@ -119,6 +132,11 @@ KittySDK::Protocol::Status KittySDK::GGProtocol::convertStatus(const quint32 &st
   }
 
   return KittySDK::Protocol::Offline;
+}
+
+void KittySDK::GGProtocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
+{
+  qDebug() << name << args;
 }
 
 KITTY_PLUGIN(GGProtocol)

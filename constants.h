@@ -1,21 +1,8 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
-#define qDebug() qDebug() << "[KittyGG] "
-#define qWarning() qWarning() << "[KittyGG] "
-
 namespace KittyGG
 {
-  namespace Icons
-  {
-    const char * const I_AVAILABLE    = "KittyGG.Available";
-    const char * const I_FFC          = "KittyGG.FFC";
-    const char * const I_AWAY         = "KittyGG.Away";
-    const char * const I_DND          = "KittyGG.DND";
-    const char * const I_INVISIBLE    = "KittyGG.Invisible";
-    const char * const I_UNAVAILABLE  = "KittyGG.Unavailable";
-  }
-
   namespace Packets
   {
     enum

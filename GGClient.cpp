@@ -6,11 +6,15 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QDebug>
 
+#define qDebug() qDebug() << "[GGClient]"
+#define qWarning() qWarning() << "[GGClient]"
+
 using namespace KittySDK;
 
 GGClient::GGClient(QObject *parent): QObject(parent)
 {
   m_socket = new QTcpSocket(this);
+
   connect(m_socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
   connect(m_socket, SIGNAL(connected()), this, SLOT(connected()));
   connect(m_socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
@@ -178,6 +182,7 @@ void GGClient::error(QAbstractSocket::SocketError socketError)
 void GGClient::hostFound()
 {
   qDebug() << "Socket::hostNotFound";
+  qDebug() << m_socket->errorString();
 }
 
 void GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
@@ -420,6 +425,7 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
         QDateTime qtime;
         qtime.setTime_t(time);
+        qDebug() << html_length;
         emit messageReceived(sender, qtime, QString::fromLocal8Bit(plain));
 
         left -= read;
