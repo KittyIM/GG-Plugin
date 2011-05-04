@@ -1,6 +1,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
-
+ 
 namespace KittyGG
 {
   namespace Packets
