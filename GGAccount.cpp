@@ -159,7 +159,7 @@ void KittySDK::GGAccount::processMessage(const quint32 &sender, const QDateTime 
 
   Message msg(contactByUin(sender), me());
   msg.setDirection(Message::Incoming);
-  msg.setBody(proto->msgToHtml(plain));
+  msg.setBody(plain);
   msg.setTimeStamp(time);
 
   QMap<QString, QVariant> args;

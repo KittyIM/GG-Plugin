@@ -47,15 +47,6 @@ void KittySDK::GGProtocol::unload()
 
 }
 
-QString KittySDK::GGProtocol::msgToHtml(const QString &msg)
-{
-  QString html = msg;
-
-  html.replace("\r\n", "<br>");
-
-  return html;
-}
-
 QString KittySDK::GGProtocol::statusIcon(KittySDK::Protocol::Status status)
 {
   switch(status) {

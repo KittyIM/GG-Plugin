@@ -4,6 +4,7 @@
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
+#include <QtCore/QRegExp>
 #include <QtCore/QDebug>
 
 #define qDebug() qDebug() << "[GGClient]"
@@ -11,7 +12,44 @@
 
 using namespace KittySDK;
 
-GGClient::GGClient(QObject *parent): QObject(parent)
+void KittySDK::GGThread::run()
+{
+  forever {
+    mutex.lock();
+
+    if(buffer.size() >= (int)(sizeof(quint32) * 2)) {
+      quint32 type, length;
+
+      while(buffer.size() > 0) {
+        QDataStream str(buffer);
+        str.setByteOrder(QDataStream::LittleEndian);
+
+        str >> type >> length;
+
+        if(buffer.size() < (int)(length + sizeof(quint32) * 2)) {
+          break;
+        }
+
+        emit packetReceived(type, length, buffer.mid(sizeof(quint32) * 2, length));
+
+        buffer = buffer.mid(length + sizeof(quint32) * 2);
+      }
+    }
+
+    mutex.unlock();
+  }
+}
+
+void KittySDK::GGThread::bufferAppend(const QByteArray &buf)
+{
+  mutex.lock();
+
+  buffer.append(buf);
+
+  mutex.unlock();
+}
+
+KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 {
   m_socket = new QTcpSocket(this);
 
@@ -31,14 +69,16 @@ GGClient::GGClient(QObject *parent): QObject(parent)
   m_initialDescription = "Kitty is alive!";
 
   m_pingTimer.setInterval(3 * 60 * 1000);
+  m_thread = new GGThread(this);
+  connect(m_thread, SIGNAL(packetReceived(quint32,quint32,QByteArray)), this, SLOT(processPacket(quint32,quint32,QByteArray)));
 }
 
-GGClient::~GGClient()
+KittySDK::GGClient::~GGClient()
 {
   delete m_socket;
 }
 
-void GGClient::setStatus(const quint32 &status)
+void KittySDK::GGClient::setStatus(const quint32 &status)
 {
   if(!isConnected()) {
     m_initialStatus = status;
@@ -50,7 +90,7 @@ void GGClient::setStatus(const quint32 &status)
   }
 }
 
-void GGClient::setDescription(const QString &description)
+void KittySDK::GGClient::setDescription(const QString &description)
 {
   m_description = description;
 
@@ -59,30 +99,30 @@ void GGClient::setDescription(const QString &description)
   }
 }
 
-void GGClient::setAccount(const quint32 &uin, const QString &passsword)
+void KittySDK::GGClient::setAccount(const quint32 &uin, const QString &passsword)
 {
   setUin(uin);
   setPassword(passsword);
 }
 
-bool GGClient::isConnected()
+bool KittySDK::GGClient::isConnected()
 {
   return (m_socket->state() == QAbstractSocket::ConnectedState);
 }
 
-void GGClient::addContact(const quint32 &uin)
+void KittySDK::GGClient::addContact(const quint32 &uin)
 {
   if(!m_roster.contains(uin)) {
     m_roster.append(uin);
   }
 }
 
-void GGClient::removeContact(const quint32 &uin)
+void KittySDK::GGClient::removeContact(const quint32 &uin)
 {
   m_roster.removeAll(uin);
 }
 
-void GGClient::connectToHost(const QString &host, const int &port)
+void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
 {
   m_host = host;
   m_port = port;
@@ -92,7 +132,7 @@ void GGClient::connectToHost(const QString &host, const int &port)
   m_socket->connectToHost(host, port);
 }
 
-void GGClient::sendMessage(const quint32 &recipient, const QString &text)
+void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text)
 {
   qDebug() << "sending message";
   QByteArray data;
@@ -134,38 +174,18 @@ void GGClient::sendMessage(const quint32 &recipient, const QString &text)
   sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
 }
 
-void GGClient::readSocket()
+void KittySDK::GGClient::readSocket()
 {
-  m_buffer.append(m_socket->readAll());
-
-  quint32 type, length;
-
-  while(m_buffer.size() > 0) {
-    QDataStream str(m_buffer);
-    str.setByteOrder(QDataStream::LittleEndian);
-
-    str >> type >> length;
-
-    qDebug() << "New packet (" << type << ", " << length << ")";
-
-    if(m_buffer.size() < (int)(length + sizeof(quint32) * 2)) {
-      qDebug() << "But it's not complete";
-      return;
-    }
-
-    m_buffer = m_buffer.mid(sizeof(quint32) * 2);
-
-    processPacket(type, length);
-  }
+  m_thread->bufferAppend(m_socket->readAll());
 }
 
-void GGClient::connected()
+void KittySDK::GGClient::connected()
 {
   qDebug() << "Socket::Connected";
-  //m_thread->start();
+  m_thread->start();
 }
 
-void GGClient::disconnected()
+void KittySDK::GGClient::disconnected()
 {
   qDebug() << "Socket::Disconnected";
 
@@ -174,31 +194,33 @@ void GGClient::disconnected()
   m_pingTimer.stop();
 }
 
-void GGClient::error(QAbstractSocket::SocketError socketError)
+void KittySDK::GGClient::error(QAbstractSocket::SocketError socketError)
 {
   qDebug() << "Socket::error(" << socketError << ")";
 }
 
-void GGClient::hostFound()
+void KittySDK::GGClient::hostFound()
 {
   qDebug() << "Socket::hostNotFound";
   qDebug() << m_socket->errorString();
 }
 
-void GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
+void KittySDK::GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
 {
   qDebug() << "Socket::proxyAuthReq";
 }
 
-void GGClient::stateChanged(QAbstractSocket::SocketState socketState)
+void KittySDK::GGClient::stateChanged(QAbstractSocket::SocketState socketState)
 {
   qDebug() << "Socket::stateChanged(" << socketState << ")";
 }
 
-void GGClient::processPacket(const quint32 &type, const quint32 &length)
+void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)
 {
-  QDataStream str(m_buffer);
+  QDataStream str(packet);
   str.setByteOrder(QDataStream::LittleEndian);
+
+  qDebug() << "New packet (" << type << ", " << length << ")";
 
   switch(type) {
     case KittyGG::Packets::P_WELCOME:
@@ -207,7 +229,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
       quint32 seed;
       str >> seed;
-      m_buffer = m_buffer.mid(4);
 
       sendLoginPacket(seed);
     }
@@ -219,7 +240,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
       quint32 unknown;
       str >> unknown;
-      m_buffer = m_buffer.mid(sizeof(unknown));
 
       m_pingTimer.start();
 
@@ -233,7 +253,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
       quint32 unknown;
       str >> unknown;
-      m_buffer = m_buffer.mid(sizeof(unknown));
 
       m_socket->disconnectFromHost();
     }
@@ -247,62 +266,56 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
       int left = length;
 
       while(left > 0) {
-        int read = 0;
-
         quint32 uin;
         str >> uin;
-        read += sizeof(uin);
+        left -= sizeof(uin);
 
         quint32 status;
         str >> status;
-        read += sizeof(status);
+        left -= sizeof(status);
 
         quint32 features;
         str >> features;
-        read += sizeof(features);
+        left -= sizeof(features);
 
         quint32 remote_ip;
         str >> remote_ip;
-        read += sizeof(remote_ip);
+        left -= sizeof(remote_ip);
 
         quint16 remote_port;
         str >>remote_port;
-        read += sizeof(remote_port);
+        left -= sizeof(remote_port);
 
         quint8 image_size;
         str >> image_size;
-        read += sizeof(image_size);
+        left -= sizeof(image_size);
 
         quint8 unknown;
         str >> unknown;
-        read += sizeof(unknown);
+        left -= sizeof(unknown);
 
         quint32 flags;
         str >> flags;
-        read += sizeof(flags);
+        left -= sizeof(flags);
 
         quint32 description_size;
         str >> description_size;
-        read += sizeof(description_size);
+        left -= sizeof(description_size);
 
         char *description = new char[description_size];
         if(description_size > 0) {
           str.readRawData(description, description_size);
-          read += description_size;
+          left -= description_size;
         }
-
-        m_buffer = m_buffer.mid(read);
 
         if(uin == m_uin) {
           m_status = status;
           m_description = description;
         }
 
-        qDebug() << uin << status << QString::fromAscii(description, description_size);
+        //qDebug() << uin << status << QString::fromAscii(description, description_size);
 
         emit statusChanged(uin, status, QString::fromAscii(description, description_size));
-
-        left -= read;
       }
 
       if(left > 0) {
@@ -319,8 +332,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
       str.readRawData(data, length);
 
       emit xmlActionReceived(QString::fromAscii(data, length));
-
-      m_buffer = m_buffer.mid(length);
     }
     break;
 
@@ -357,15 +368,19 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
         read += sizeof(offset_attributes);
 
         quint32 html_length = offset_plain - read;
-        char *html = new char[html_length];
+        char *html = 0;
         if(html_length > 0) {
+          html = new char[html_length];
+
           str.readRawData(html, html_length);
           read += html_length;
         }
 
         quint32 plain_length = offset_attributes - offset_plain;
-        char *plain = new char[plain_length];
+        char *plain = 0;
         if(plain_length > 0) {
+          plain = new char[plain_length];
+
           str.readRawData(plain, plain_length);
           read += plain_length;
         }
@@ -378,60 +393,32 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
         str >> attr_length;
         read += sizeof(attr_length);
 
-        while(attr_length > 0) {
-          quint16 pos;
-          str >> pos;
-          attr_length -= sizeof(pos);
-          read += sizeof(pos);
-
-          quint8 font;
-          str >> font;
-          attr_length -= sizeof(font);
-          read += sizeof(font);
-
-          if(font & KittyGG::Fonts::F_COLOR) {
-            quint8 red;
-            str >> red;
-            attr_length -= sizeof(red);
-            read += sizeof(red);
-
-            quint8 green;
-            str >> green;
-            attr_length -= sizeof(green);
-            read += sizeof(green);
-
-            quint8 blue;
-            str >> blue;
-            attr_length -= sizeof(blue);
-            read += sizeof(blue);
-
-            qDebug() << "at pos" << pos << "there's color " << red << green << blue;
-          }
-
-          if(font & KittyGG::Fonts::F_BOLD) {
-            qDebug() << "at pos" << pos << "there's bold";
-          }
-
-          if(font & KittyGG::Fonts::F_ITALIC) {
-            qDebug() << "at pos" << pos << "there's italic";
-          }
-
-          if(font & KittyGG::Fonts::F_UNDERLINE) {
-            qDebug() << "at pos" << pos << "there's underline";
-          }
+        char *attr = 0;
+        if(attr_length > 0) {
+          attr = new char[attr_length];
+          str.readRawData(attr, attr_length);
+          read += attr_length;
         }
 
-        m_buffer = m_buffer.mid(read);
+        QString text;
+        if(html_length > 0) {
+          text = QString::fromAscii(html);
+          text.replace(QRegExp("\\s{0,}font-family:'[^']*';\\s{0,}", Qt::CaseInsensitive), "");
+          text.replace(QRegExp("\\s{0,}font-size:[^pt]*pt;\\s{0,}", Qt::CaseInsensitive), "");
+        } else {
+          text = plainToHtml(QString::fromLocal8Bit(plain), QByteArray(attr, attr_length));
+        }
 
-        QDateTime qtime;
-        qtime.setTime_t(time);
-        qDebug() << html_length;
-        emit messageReceived(sender, qtime, QString::fromLocal8Bit(plain));
+        QDateTime qtime = QDateTime::currentDateTime();
+        if(qtime.toTime_t() > time) {
+          qtime.setTime_t(time);
+        }
+
+        emit messageReceived(sender, qtime, text);
 
         left -= read;
         if(left > 0) {
           qDebug() << "left" << left;
-          m_buffer = m_buffer.mid(left);
           left = 0;
         }
       }
@@ -451,8 +438,9 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
       quint32 seq;
       str >> seq;
 
-      m_buffer = m_buffer.mid(sizeof(status) + sizeof(recipient) + sizeof(seq));
-      qDebug() << "Message sent to" << recipient << "with seq" << seq << "has status" << status;
+      if(status != KittyGG::MessageAck::ACK_DELIVERED) {
+        qDebug() << "Message sent to" << recipient << "with seq" << seq << "has status" << status;
+      }
     }
     break;
 
@@ -466,8 +454,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
       quint32 uin;
       str >> uin;
 
-      m_buffer = m_buffer.mid(sizeof(type) + sizeof(uin));
-
       if(type > 0) {
         qDebug() << uin << "is typing:" << type;
       } else {
@@ -478,48 +464,37 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
     case KittyGG::Packets::P_USER_DATA:
     {
-      int read = 0;
-
       quint32 type;
       str >> type;
-      read += sizeof(type);
 
       int num;
       str >> num;
-      read += sizeof(num);
 
       while(num > 0) {
         quint32 uin;
         str >> uin;
-        read += sizeof(uin);
 
         int num2;
         str >> num2;
-        read += sizeof(num2);
 
         while(num2 > 0) {
           quint32 name_size;
           str >> name_size;
-          read += sizeof(name_size);
 
           char *name = new char[name_size];
           if(name_size > 0) {
             str.readRawData(name, name_size);
-            read += name_size;
           }
 
           quint32 type;
           str >> type;
-          read += sizeof(type);
 
           quint32 value_size;
           str >> value_size;
-          read += sizeof(value_size);
 
           char *value = new char[value_size];
           if(value_size > 0) {
             str.readRawData(value, value_size);
-            read += value_size;
           }
 
           emit userDataReceived(uin, QString::fromAscii(name, name_size), QString::fromAscii(value, value_size));
@@ -529,8 +504,6 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
 
         num--;
       }
-
-      m_buffer = m_buffer.mid(read);
     }
     break;
 
@@ -554,7 +527,7 @@ void GGClient::processPacket(const quint32 &type, const quint32 &length)
   }
 }
 
-void GGClient::sendLoginPacket(const quint32 &seed)
+void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
 {
   QByteArray data;
   quint8 tmp8;
@@ -614,7 +587,7 @@ void GGClient::sendLoginPacket(const quint32 &seed)
   sendPacket(KittyGG::Packets::P_LOGIN, data, data.size());
 }
 
-void GGClient::sendRosterPacket()
+void KittySDK::GGClient::sendRosterPacket()
 {
   if(m_roster.empty()) {
     sendPacket(KittyGG::Packets::P_LIST_EMPTY);
@@ -648,7 +621,7 @@ void GGClient::sendRosterPacket()
   }
 }
 
-void GGClient::sendChangeStatusPacket()
+void KittySDK::GGClient::sendChangeStatusPacket()
 {
   QByteArray data;
   quint32 tmp32;
@@ -669,7 +642,7 @@ void GGClient::sendChangeStatusPacket()
   sendPacket(KittyGG::Packets::P_NEW_STATUS, data, data.size());
 }
 
-void GGClient::sendPingPacket()
+void KittySDK::GGClient::sendPingPacket()
 {
   if(isConnected()) {
     qDebug() << "Sending P_PING";
@@ -677,7 +650,7 @@ void GGClient::sendPingPacket()
   }
 }
 
-void GGClient::sendPacket(const int &type, const QByteArray &data, const quint32 &size)
+void KittySDK::GGClient::sendPacket(const int &type, const QByteArray &data, const quint32 &size)
 {
   QByteArray buffer;
 
@@ -691,3 +664,110 @@ void GGClient::sendPacket(const int &type, const QByteArray &data, const quint32
   }
 }
 
+QString KittySDK::GGClient::plainToHtml(const QString &plain, const QByteArray &attr)
+{
+  QDataStream str(attr);
+  str.setByteOrder(QDataStream::LittleEndian);
+
+  QString text, fragment;
+
+  bool opened = false;
+  quint16 last_pos = 0;
+  quint8 red = 0;
+  quint8 green = 0;
+  quint8 blue = 0;
+
+  int attr_length = attr.size();
+  while(attr_length > 0) {
+    quint16 pos;
+    str >> pos;
+    attr_length -= sizeof(pos);
+
+    quint8 font;
+    str >> font;
+    attr_length -= sizeof(font);
+
+    pos++;
+    fragment = plain.mid(last_pos, pos - last_pos);
+    last_pos = pos;
+
+    if(opened) {
+      text.append("</span>");
+      opened = false;
+    }
+
+    if(font & KittyGG::Fonts::F_IMAGE) {
+      qDebug() << "Image!";
+    } else {
+      QString style;
+
+      if(font & KittyGG::Fonts::F_COLOR) {
+        str >> red;
+        attr_length -= sizeof(red);
+
+        str >> green;
+        attr_length -= sizeof(green);
+
+        str >> blue;
+        attr_length -= sizeof(blue);
+
+        //qDebug() << "at pos" << pos << "there's color " << red << green << blue;
+      }
+
+      style.append(QString("color: #%1%2%3;").arg(QString::number(red, 16)).arg(QString::number(green, 16)).arg(QString::number(blue, 16)));
+
+      if(font & KittyGG::Fonts::F_BOLD) {
+        style.append("font-weight: bold;");
+
+        //qDebug() << "at pos" << pos << "there's bold";
+      }
+
+      if(font & KittyGG::Fonts::F_ITALIC) {
+        style.append("font-style: italic;");
+
+        //qDebug() << "at pos" << pos << "there's italic";
+      }
+
+      if(font & KittyGG::Fonts::F_UNDERLINE) {
+        style.append("text-decoration: underline;");
+
+        //qDebug() << "at pos" << pos << "there's underline";
+      }
+
+      QString code("<span");
+      if(!style.isEmpty()) {
+        code.append(QString(" style=\"%1\"").arg(style));
+      }
+
+      code.append(">");
+
+      fragment.replace("&", "&amp;");
+      fragment.replace("<", "&lt;");;
+      fragment.replace(">", "&gt;");
+      fragment.replace("\"", "&quot;");
+
+      text.append(code);
+      text.append(fragment);
+      opened = true;
+    }
+  }
+
+  fragment = plain.mid(last_pos);
+  fragment.replace("&", "&amp;");
+  fragment.replace("<", "&lt;");;
+  fragment.replace(">", "&gt;");
+  fragment.replace("\"", "&quot;");
+
+  text.append(fragment);
+
+  if(opened) {
+    text.append("</span>");
+  }
+
+  text.replace("\n", "<br>");
+  text.replace("\r", "");
+  text.replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
+  text.replace("  ", " &nbsp;");
+
+  return text;
+}

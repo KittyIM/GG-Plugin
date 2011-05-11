@@ -1,6 +1,6 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
- 
+
 namespace KittyGG
 {
   namespace Packets
@@ -95,6 +95,17 @@ namespace KittyGG
       F_UNDERLINE = 0x04,
       F_COLOR     = 0x08,
       F_IMAGE     = 0x80
+    };
+  }
+
+  namespace MessageAck
+  {
+    enum
+    {
+      ACK_BLOCKED	  = 0x0001,
+      ACK_DELIVERED	= 0x0002,
+      ACK_QUEUED	  = 0x0003,
+      ACK_MBOXFULL	= 0x0004
     };
   }
 }

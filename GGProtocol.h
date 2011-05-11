@@ -18,8 +18,6 @@ namespace KittySDK
       void load();
       void unload();
 
-      QString msgToHtml(const QString &msg);
-
       QString statusIcon(KittySDK::Protocol::Status status);
       Account *newAccount(const QString &uid);
       QWidget *editWindow(Account *account = 0);

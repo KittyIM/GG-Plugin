@@ -4,11 +4,33 @@
 #include <QtCore/QtGlobal>
 #include <QtCore/QObject>
 #include <QtCore/QString>
+#include <QtCore/QThread>
 #include <QtCore/QTimer>
+#include <QtCore/QMutex>
 #include <QtNetwork/QTcpSocket>
+
 
 namespace KittySDK
 {
+  class GGClient;
+
+  class GGThread: public QThread
+  {
+    Q_OBJECT
+
+    public:
+      GGThread(QObject *parent = 0): QThread(parent) { }
+
+      void run();
+      void bufferAppend(const QByteArray &buf);
+
+      QMutex mutex;
+      QByteArray buffer;
+
+    signals:
+      void packetReceived(quint32 type, quint32 length, QByteArray packet);
+  };
+
   class GGClient: public QObject
   {
     Q_OBJECT
@@ -18,6 +40,8 @@ namespace KittySDK
     Q_PROPERTY(QString password READ password WRITE setPassword)
     Q_PROPERTY(quint32 status READ status WRITE setStatus)
     Q_PROPERTY(QString description READ description WRITE setDescription)
+
+    friend class GGThread;
 
     public:
       explicit GGClient(QObject *parent = 0);
@@ -65,12 +89,13 @@ namespace KittySDK
       void hostFound();
       void proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator);
       void stateChanged(QAbstractSocket::SocketState socketState);
-      void processPacket(const quint32 &type, const quint32 &length);
+      void processPacket(const quint32 &type, const quint32 &length, QByteArray packet);
       void sendLoginPacket(const quint32 &seed);
       void sendRosterPacket();
       void sendChangeStatusPacket();
       void sendPingPacket();
       void sendPacket(const int &type, const QByteArray &data = QByteArray(), const quint32 &size = 0);
+      QString plainToHtml(const QString &plain, const QByteArray &attr);
 
     private:
       QString m_host;
@@ -83,8 +108,9 @@ namespace KittySDK
       QString m_initialDescription;
       QTimer m_pingTimer;
       QTcpSocket *m_socket;
-      QByteArray m_buffer;
+      //QByteArray m_buffer;
       QList<quint32> m_roster;
+      GGThread *m_thread;
   };
 }
 
