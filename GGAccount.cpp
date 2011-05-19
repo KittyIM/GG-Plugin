@@ -87,7 +87,11 @@ Contact *KittySDK::GGAccount::contactByUin(const quint32 &uin)
     }
   }
 
-  return newContact(uin);
+  Contact *cnt = newContact(uin);
+  cnt->setDisplay(QString::number(uin));
+  m_contacts.insert(cnt->uid(), cnt);
+
+  return cnt;
 }
 
 void KittySDK::GGAccount::insertContact(const QString &uid, Contact *contact)
@@ -155,8 +159,6 @@ void KittySDK::GGAccount::processUserData(const quint32 &uin, const QString &nam
 
 void KittySDK::GGAccount::processMessage(const quint32 &sender, const QDateTime &time, const QString &plain)
 {
-  GGProtocol *proto = dynamic_cast<GGProtocol*>(protocol());
-
   Message msg(contactByUin(sender), me());
   msg.setDirection(Message::Incoming);
   msg.setBody(plain);
