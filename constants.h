@@ -13,6 +13,7 @@ namespace KittyGG
       P_PING           = 0x08,
       P_DISCONNECTING  = 0x0b,
       P_DISCONNECT_ACK = 0x0d,
+      P_NOTIFY_ADD     = 0x0d,
       P_NOTIFY_FIRST   = 0x0f,
       P_NOTIFY_LAST    = 0x10,
       P_LIST_EMPTY     = 0x12,

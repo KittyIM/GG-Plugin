@@ -115,6 +115,13 @@ void KittySDK::GGClient::addContact(const quint32 &uin)
   if(!m_roster.contains(uin)) {
     m_roster.append(uin);
   }
+
+  QByteArray data;
+  data.append((char*)&uin, 4);
+  data.append(0x03);
+
+  sendPacket(KittyGG::Packets::P_NOTIFY_ADD, data, data.size());
+
 }
 
 void KittySDK::GGClient::removeContact(const quint32 &uin)

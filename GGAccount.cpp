@@ -69,6 +69,12 @@ Protocol::Status KittySDK::GGAccount::status() const
 
 Contact *KittySDK::GGAccount::newContact(const QString &uid)
 {
+  foreach(Contact *cnt, contacts()) {
+    if(cnt->uid() == uid) {
+      return cnt;
+    }
+  }
+
   GGContact *cnt = new GGContact(uid, this);
 
   return cnt;
@@ -89,7 +95,7 @@ Contact *KittySDK::GGAccount::contactByUin(const quint32 &uin)
 
   Contact *cnt = newContact(uin);
   cnt->setDisplay(QString::number(uin));
-  m_contacts.insert(cnt->uid(), cnt);
+  insertContact(cnt->uid(), cnt);
 
   return cnt;
 }
@@ -138,7 +144,8 @@ void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 
   QString uid = QString::number(uin);
 
   if(uid == this->uid()) {
-    emit statusChanged();
+    GGProtocol *ggproto = dynamic_cast<KittySDK::GGProtocol*>(protocol());
+    emit statusChanged(ggproto->convertStatus(status), description);
   }
 
   if(contacts().contains(uid)) {
