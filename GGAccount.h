@@ -29,6 +29,7 @@ namespace KittySDK
     public slots:
       void loadSettings(const QMap<QString, QVariant> &settings);
       QMap<QString, QVariant> saveSettings();
+      void changeStatus(const KittySDK::Protocol::Status &status, const QString &description);
       QMenu *statusMenu();
       void sendMessage(const Message &msg);
 

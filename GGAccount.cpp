@@ -116,9 +116,39 @@ QMap<QString, QVariant> GGAccount::saveSettings()
 {
   QMap<QString, QVariant> settings;
 
-  //settings.insert("setting", "value");
-
   return settings;
+}
+
+void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status, const QString &description)
+{
+  quint32 stat = KittyGG::Statuses::S_AVAILABLE;
+  switch(status) {
+    case Protocol::Away:
+      stat = KittyGG::Statuses::S_BUSY;
+    break;
+
+    case Protocol::FFC:
+      stat = KittyGG::Statuses::S_FFC;
+    break;
+
+    case Protocol::DND:
+      stat = KittyGG::Statuses::S_DND;
+    break;
+
+    case Protocol::Invisible:
+      stat = KittyGG::Statuses::S_INVISIBLE;
+    break;
+
+    case Protocol::Offline:
+      stat = KittyGG::Statuses::S_UNAVAILABLE;
+    break;
+
+    default:
+      stat = KittyGG::Statuses::S_AVAILABLE;
+    break;
+  }
+
+  m_client->changeStatus(stat, description);
 }
 
 QMenu *KittySDK::GGAccount::statusMenu()

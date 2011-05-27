@@ -74,6 +74,7 @@ namespace KittySDK
     public slots:
       void connectToHost(const QString &host = "91.214.237.54", const int &port = 8074);
       void sendMessage(const quint32 &recipient, const QString &text);
+      void changeStatus(const quint32 &status, const QString &description);
 
     signals:
       void statusChanged(const quint32 &uin, const quint32 &status, const QString &description);

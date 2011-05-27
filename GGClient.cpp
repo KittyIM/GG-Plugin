@@ -116,12 +116,13 @@ void KittySDK::GGClient::addContact(const quint32 &uin)
     m_roster.append(uin);
   }
 
-  QByteArray data;
-  data.append((char*)&uin, 4);
-  data.append(0x03);
+  if(isConnected()) {
+    QByteArray data;
+    data.append((char*)&uin, 4);
+    data.append(0x03);
 
-  sendPacket(KittyGG::Packets::P_NOTIFY_ADD, data, data.size());
-
+    sendPacket(KittyGG::Packets::P_NOTIFY_ADD, data, data.size());
+  }
 }
 
 void KittySDK::GGClient::removeContact(const quint32 &uin)
@@ -179,6 +180,16 @@ void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &te
 
 
   sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
+}
+
+void KittySDK::GGClient::changeStatus(const quint32 &status, const QString &description)
+{
+  if(isConnected()) {
+    m_status = status;
+    m_description = description;
+
+    sendChangeStatusPacket();
+  }
 }
 
 void KittySDK::GGClient::readSocket()
