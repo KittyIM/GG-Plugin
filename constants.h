@@ -25,6 +25,8 @@ namespace KittyGG
       P_STATUS         = 0x36,
       P_NOTIFY_REPLY   = 0x37,
       P_NEW_STATUS     = 0x38,
+      P_LIST_REQUEST   = 0x40,
+      P_LIST_REPLY     = 0x41,
       P_LOGIN_FAILED   = 0x43,
       P_USER_DATA      = 0x44,
       P_TYPING_NOTIFY  = 0x59

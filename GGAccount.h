@@ -37,12 +37,15 @@ namespace KittySDK
       void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
       void processUserData(const quint32 &uin, const QString &name, const QString &data);
       void processMessage(const quint32 &sender, const QDateTime &time, const QString &plain);
+      void importContact(const quint32 &uin, const QMap<QString, QString> &data);
       void setStatusAvailable();
       void setStatusAway();
       void setStatusFFC();
       void setStatusDND();
       void setStatusInvisible();
       void setStatusUnavailable();
+      void importFromServer();
+      void importFromFile();
 
     private:
       GGClient *m_client;

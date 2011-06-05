@@ -2,12 +2,14 @@
 
 #include "SDK/SoundsConstants.h"
 #include "SDK/GGConstants.h"
+#include "SDK/constants.h"
 #include "SDK/Message.h"
 #include "GGContact.h"
 #include "constants.h"
 #include "GGClient.h"
 
 #include <QtCore/QDebug>
+#include <QtGui/QFileDialog>
 #include <QtGui/QMenu>
 
 #define qDebug() qDebug() << "[GGAccount]"
@@ -21,11 +23,20 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
   connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
   connect(m_client, SIGNAL(userDataReceived(quint32,QString,QString)), this, SLOT(processUserData(quint32,QString,QString)));
   connect(m_client, SIGNAL(messageReceived(quint32,QDateTime,QString)), this, SLOT(processMessage(quint32,QDateTime,QString)));
+  connect(m_client, SIGNAL(contactImported(quint32,QMap<QString,QString>)), this, SLOT(importContact(quint32,QMap<QString,QString>)));
 
   setMe(new GGContact(uid, this));
   me()->setDisplay(protocol()->core()->profileName());
 
   m_statusMenu = new QMenu();
+
+  QMenu *contactsMenu = m_statusMenu->addMenu(tr("Contacts"));
+  QMenu *importMenu = contactsMenu->addMenu(tr("Import"));
+
+  importMenu->addAction(tr("From server"), this, SLOT(importFromServer()));
+  importMenu->addAction(tr("From file"), this, SLOT(importFromFile()));
+
+  m_statusMenu->addSeparator();
 
   m_availableAction = new QAction(protocol()->core()->icon(Icons::I_GG_AVAILABLE), tr("Available"), this);
   connect(m_availableAction, SIGNAL(triggered()), this, SLOT(setStatusAvailable()));
@@ -96,6 +107,8 @@ Contact *KittySDK::GGAccount::contactByUin(const quint32 &uin)
   Contact *cnt = newContact(uin);
   cnt->setDisplay(QString::number(uin));
   insertContact(cnt->uid(), cnt);
+
+  emit contactAdded(cnt);
 
   return cnt;
 }
@@ -208,6 +221,43 @@ void KittySDK::GGAccount::processMessage(const quint32 &sender, const QDateTime 
   emit messageReceived(msg);
 }
 
+void KittySDK::GGAccount::importContact(const quint32 &uin, const QMap<QString, QString> &data)
+{
+  Contact *cnt = contactByUin(uin);
+
+  if(cnt->display() == cnt->uid()) {
+    cnt->setDisplay(data.value("ShowName"));
+  }
+
+  if(cnt->group().isEmpty()) {
+    cnt->setGroup(data.value("Group"));
+  }
+
+  if(cnt->data(ContactInfos::I_HOMEPAGE).toString().isEmpty()) {
+    cnt->setData(ContactInfos::I_HOMEPAGE, data.value("WwwAddress"));
+  }
+
+  if(cnt->data(ContactInfos::I_FIRSTNAME).toString().isEmpty()) {
+    cnt->setData(ContactInfos::I_FIRSTNAME, data.value("FirstName"));
+  }
+
+  if(cnt->data(ContactInfos::I_LASTNAME).toString().isEmpty()) {
+    cnt->setData(ContactInfos::I_LASTNAME, data.value("LastName"));
+  }
+
+  if(cnt->data(ContactInfos::I_HOME_STATE).toString().isEmpty()) {
+    cnt->setData(ContactInfos::I_HOME_STATE, data.value("Province"));
+  }
+
+/*
+  data.insert("MobilePhone", phone.firstChild().nodeValue());
+  data.insert("Email", email.firstChild().nodeValue());
+  data.insert("Gender", sex.firstChild().nodeValue());
+  data.insert("Birth", birthday.firstChild().nodeValue());
+  data.insert("City", city.firstChild().nodeValue());
+*/
+}
+
 void KittySDK::GGAccount::setStatusAvailable()
 {
   m_client->setStatus(KittyGG::Statuses::S_AVAILABLE);
@@ -236,4 +286,21 @@ void KittySDK::GGAccount::setStatusInvisible()
 void KittySDK::GGAccount::setStatusUnavailable()
 {
   m_client->setStatus(KittyGG::Statuses::S_UNAVAILABLE);
+}
+
+void KittySDK::GGAccount::importFromServer()
+{
+  m_client->requestRoster();
+}
+
+void KittySDK::GGAccount::importFromFile()
+{
+  QString fileName = QFileDialog::getOpenFileName(0, tr("Choose file"), "", tr("XML files") + " (GG 8+) (*.xml);;" + tr("Text files") + " (GG 6-7) (*.txt)");
+  if(!fileName.isEmpty()) {
+    QFile file(fileName);
+    if(file.open(QFile::ReadOnly)) {
+      m_client->parseXMLRoster(file.readAll());
+      file.close();
+    }
+  }
 }

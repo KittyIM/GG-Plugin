@@ -1,6 +1,6 @@
 TARGET     = GG-plugin
 TEMPLATE   = lib
-QT        += network
+QT        += network xml
 
 SOURCES   += GGProtocol.cpp \
              GGAccount.cpp \
@@ -24,8 +24,12 @@ HEADERS   += GGProtocol.h \
              SDK/Chat.h \
              SDK/GGConstants.h \
              GGContact.h \
-             SDK/SoundsConstants.h
+             SDK/SoundsConstants.h \
+    zlib/zlib.h \
+    zlib/zconf.h
 
 FORMS     += GGEditWindow.ui
 
 RESOURCES += res.qrc
+
+

@@ -75,12 +75,15 @@ namespace KittySDK
       void connectToHost(const QString &host = "91.214.237.54", const int &port = 8074);
       void sendMessage(const quint32 &recipient, const QString &text);
       void changeStatus(const quint32 &status, const QString &description);
+      void requestRoster();
+      void parseXMLRoster(const QString &xml);
 
     signals:
       void statusChanged(const quint32 &uin, const quint32 &status, const QString &description);
       void messageReceived(const quint32 &sender, const QDateTime &time, const QString &plain);
       void userDataReceived(const quint32 &uin, const QString &name, const QString &data);
       void xmlActionReceived(const QString &xmlAction);
+      void contactImported(const quint32 &uin, const QMap<QString, QString> &data);
 
     private slots:
       void readSocket();

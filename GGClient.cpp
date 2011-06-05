@@ -1,11 +1,14 @@
 #include "GGClient.h"
 
 #include "constants.h"
+#include "zlib/zlib.h"
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
 #include <QtCore/QRegExp>
 #include <QtCore/QDebug>
+#include <QtXml/QDomDocument>
+#include <QtXml/QDomElement>
 
 #define qDebug() qDebug() << "[GGClient]"
 #define qWarning() qWarning() << "[GGClient]"
@@ -190,6 +193,26 @@ void KittySDK::GGClient::changeStatus(const quint32 &status, const QString &desc
 
     sendChangeStatusPacket();
   }
+}
+
+void KittySDK::GGClient::requestRoster()
+{
+  QByteArray data;
+
+  //type
+  data.append((char)0x02);
+
+  //version
+  int ver = 0;
+  data.append((char*)&ver, sizeof(ver));
+
+  //format
+  data.append((char)0x02);
+
+  //unknown
+  data.append((char)0x01);
+
+  sendPacket(KittyGG::Packets::P_LIST_REQUEST, data, data.size());
 }
 
 void KittySDK::GGClient::readSocket()
@@ -510,6 +533,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
           quint32 value_size;
           str >> value_size;
 
+
           char *value = new char[value_size];
           if(value_size > 0) {
             str.readRawData(value, value_size);
@@ -539,6 +563,63 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
     }
     break;
 
+    case KittyGG::Packets::P_LIST_REPLY:
+    {
+      qDebug() << "It's P_LIST_REPLY";
+
+      qint8 type;
+      str >> type;
+
+      int ver;
+      str >> ver;
+
+      qint8 format;
+      str >> format;
+
+      qint8 unknown;
+      str >> unknown;
+
+      int left = length - (3 * sizeof(qint8)) - sizeof(int);
+
+      quint8 *data = new quint8[left];
+      str.readRawData((char*)data, left);
+
+      QByteArray outData;
+
+      z_stream strm;
+      quint8 out[65535];
+
+      strm.zalloc = Z_NULL;
+      strm.zfree = Z_NULL;
+      strm.opaque = Z_NULL;
+      strm.avail_in = left;
+      strm.next_in = data;
+
+      int ret = inflateInit(&strm);
+      if(ret != Z_OK) {
+        qWarning() << "inflateInit failed";
+        return;
+      }
+
+      do {
+        strm.avail_out = sizeof(out);
+        strm.next_out = out;
+
+        ret = inflate(&strm, Z_NO_FLUSH);
+        if(ret == Z_MEM_ERROR) {
+          qWarning() << "inflate error";
+          break;
+        }
+
+        outData.append((const char*)out, sizeof(out) - strm.avail_out);
+      } while(ret != Z_STREAM_END);
+
+      inflateEnd(&strm);
+
+      parseXMLRoster(outData);
+    }
+    break;
+
     default:
       qDebug() << "Unknown type" << type;
     break;
@@ -554,6 +635,8 @@ void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
   QCryptographicHash hash(QCryptographicHash::Sha1);
   hash.addData(password().toLatin1(), password().length());
   hash.addData((char*)&seed, sizeof(seed));
+
+  qDebug() << uin() << password();
 
   // uin
   tmp32 = uin();
@@ -788,4 +871,70 @@ QString KittySDK::GGClient::plainToHtml(const QString &plain, const QByteArray &
   text.replace("  ", " &nbsp;");
 
   return text;
+}
+
+void KittySDK::GGClient::parseXMLRoster(const QString &xml)
+{
+  QDomDocument doc;
+  doc.setContent(xml);
+
+  QDomElement root = doc.documentElement();
+  if(root.nodeName() == "ContactBook") {
+    QMap <QString, QString> groups;
+
+    QDomElement groupsElement = root.namedItem("Groups").toElement();
+    QDomNodeList groupList = groupsElement.elementsByTagName("Group");
+    for(int i = 0; i < groupList.count(); i++) {
+      QDomElement group = groupList.at(i).toElement();
+
+      QDomElement id = group.namedItem("Id").toElement();
+      QDomElement name = group.namedItem("Name").toElement();
+
+      groups.insert(id.firstChild().nodeValue(), name.firstChild().nodeValue());
+    }
+
+    QDomElement contactsElement = root.namedItem("Contacts").toElement();
+    QDomNodeList contactList = contactsElement.elementsByTagName("Contact");
+    for(int i = 0; i < contactList.count(); i++) {
+      QDomElement contact = contactList.at(i).toElement();
+
+      QDomElement number = contact.namedItem("GGNumber").toElement();
+      QDomElement display = contact.namedItem("ShowName").toElement();
+      QDomElement phone = contact.namedItem("MobilePhone").toElement();
+      QDomElement email = contact.namedItem("Email").toElement();
+      QDomElement homepage = contact.namedItem("WwwAddress").toElement();
+      QDomElement firstname = contact.namedItem("FirstName").toElement();
+      QDomElement lastname = contact.namedItem("LastName").toElement();
+      QDomElement sex = contact.namedItem("Gender").toElement();
+      QDomElement birthday = contact.namedItem("Birth").toElement();
+      QDomElement city = contact.namedItem("City").toElement();
+      QDomElement state = contact.namedItem("Province").toElement();
+      QDomElement group = contact.namedItem("Groups").toElement();
+
+      QMap<QString, QString> data;
+      data.insert("ShowName", display.firstChild().nodeValue());
+      data.insert("MobilePhone", phone.firstChild().nodeValue());
+      data.insert("Email", email.firstChild().nodeValue());
+      data.insert("WwwAddress", homepage.firstChild().nodeValue());
+      data.insert("FirstName", firstname.firstChild().nodeValue());
+      data.insert("LastName", lastname.firstChild().nodeValue());
+      data.insert("Gender", sex.firstChild().nodeValue());
+      data.insert("Birth", birthday.firstChild().nodeValue());
+      data.insert("City", city.firstChild().nodeValue());
+      data.insert("Province", state.firstChild().nodeValue());
+
+      QString groupId = group.namedItem("GroupId").firstChild().nodeValue();
+      if((groupId == "00000000-0000-0000-0000-000000000000") && (group.childNodes().count() > 1)) {
+        groupId = group.elementsByTagName("GroupId").at(1).firstChild().nodeValue();
+      }
+
+      data.insert("Group", groups.value(groupId));
+
+      quint32 uin = number.firstChild().nodeValue().toUInt();
+
+      emit contactImported(uin, data);
+    }
+  } else {
+    qWarning() << "Wrong format!";
+  }
 }
