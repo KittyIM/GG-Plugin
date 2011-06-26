@@ -37,6 +37,7 @@ namespace KittySDK
       void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
       void processUserData(const quint32 &uin, const QString &name, const QString &data);
       void processMessage(const quint32 &sender, const QDateTime &time, const QString &plain);
+      void processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data);
       void importContact(const quint32 &uin, const QMap<QString, QString> &data);
       void setStatusAvailable();
       void setStatusAway();

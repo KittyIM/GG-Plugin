@@ -31,6 +31,22 @@ namespace KittySDK
       void packetReceived(quint32 type, quint32 length, QByteArray packet);
   };
 
+  struct GGImgTransfer
+  {
+    GGImgTransfer(const QString &fileName, const quint32 &crc32, const quint32 &size):
+      fileName(fileName),
+      size(size),
+      received(0),
+      crc32(crc32)
+    { }
+
+    QString fileName;
+    QByteArray data;
+    quint32 size;
+    quint32 received;
+    quint32 crc32;
+  };
+
   class GGClient: public QObject
   {
     Q_OBJECT
@@ -73,7 +89,7 @@ namespace KittySDK
 
     public slots:
       void connectToHost(const QString &host = "91.214.237.54", const int &port = 8074);
-      void sendMessage(const quint32 &recipient, const QString &text);
+      void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
       void changeStatus(const quint32 &status, const QString &description);
       void requestRoster();
       void parseXMLRoster(const QString &xml);
@@ -84,6 +100,7 @@ namespace KittySDK
       void userDataReceived(const quint32 &uin, const QString &name, const QString &data);
       void xmlActionReceived(const QString &xmlAction);
       void contactImported(const quint32 &uin, const QMap<QString, QString> &data);
+      void imageReceived(const quint32 &sender, const QString &fileName, const quint32 &crc32, const QByteArray &data);
 
     private slots:
       void readSocket();
@@ -99,7 +116,9 @@ namespace KittySDK
       void sendChangeStatusPacket();
       void sendPingPacket();
       void sendPacket(const int &type, const QByteArray &data = QByteArray(), const quint32 &size = 0);
-      QString plainToHtml(const QString &plain, const QByteArray &attr);
+      QString plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr);
+      void requestImage(const quint32 &sender, const quint32 &size, const quint32 &crc32);
+      GGImgTransfer *imgTransferByCrc(const quint32 &crc32);
 
     private:
       QString m_host;
@@ -114,6 +133,7 @@ namespace KittySDK
       QTcpSocket *m_socket;
       //QByteArray m_buffer;
       QList<quint32> m_roster;
+      QList<GGImgTransfer*> m_imgTransfers;
       GGThread *m_thread;
   };
 }

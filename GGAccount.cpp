@@ -9,6 +9,7 @@
 #include "GGClient.h"
 
 #include <QtCore/QDebug>
+#include <QtGui/QTextDocument>
 #include <QtGui/QFileDialog>
 #include <QtGui/QMenu>
 
@@ -23,6 +24,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
   connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
   connect(m_client, SIGNAL(userDataReceived(quint32,QString,QString)), this, SLOT(processUserData(quint32,QString,QString)));
   connect(m_client, SIGNAL(messageReceived(quint32,QDateTime,QString)), this, SLOT(processMessage(quint32,QDateTime,QString)));
+  connect(m_client, SIGNAL(imageReceived(quint32,QString,quint32,QByteArray)), this, SLOT(processImage(quint32,QString,quint32,QByteArray)));
   connect(m_client, SIGNAL(contactImported(quint32,QMap<QString,QString>)), this, SLOT(importContact(quint32,QMap<QString,QString>)));
 
   setMe(new GGContact(uid, this));
@@ -219,6 +221,30 @@ void KittySDK::GGAccount::processMessage(const quint32 &sender, const QDateTime 
   protocol()->core()->execPluginAction("Sounds", "playSound", args);
 
   emit messageReceived(msg);
+}
+
+void KittySDK::GGAccount::processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data)
+{
+  QDir imgDir(protocol()->core()->profilesDir() + protocol()->core()->profileName() + "/imgcache/");
+
+  //create dir if it doesn't exist
+  imgDir.mkpath(".");
+
+  QFile file(imgDir.absolutePath() + "/" + imgName);
+  if(file.open(QFile::WriteOnly)) {
+    file.write(data);
+    file.close();
+
+    Message msg(contactByUin(sender), me());
+    msg.setDirection(Message::Incoming);
+    msg.setBody(QString("<img src=\"%1%2\" alt=\"%2\" title=\"%2\">").arg(imgDir.absolutePath() + "/").arg(Qt::escape(imgName)));
+
+    QMap<QString, QVariant> args;
+    args.insert("id", Sounds::S_MSG_RECV);
+    protocol()->core()->execPluginAction("Sounds", "playSound", args);
+
+    emit messageReceived(msg);
+  }
 }
 
 void KittySDK::GGAccount::importContact(const quint32 &uin, const QMap<QString, QString> &data)

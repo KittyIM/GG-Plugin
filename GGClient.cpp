@@ -7,6 +7,7 @@
 #include <QtCore/QDateTime>
 #include <QtCore/QRegExp>
 #include <QtCore/QDebug>
+#include <QtCore/QFile>
 #include <QtXml/QDomDocument>
 #include <QtXml/QDomElement>
 
@@ -143,7 +144,7 @@ void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
   m_socket->connectToHost(host, port);
 }
 
-void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text)
+void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer)
 {
   qDebug() << "sending message";
   QByteArray data;
@@ -180,7 +181,7 @@ void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &te
   data.append((char)0x00);
   data.append((char)0x00);
   data.append((char)0x00);
-
+  data.append(footer);
 
   sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
 }
@@ -261,7 +262,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
   QDataStream str(packet);
   str.setByteOrder(QDataStream::LittleEndian);
 
-  qDebug() << "New packet (" << type << ", " << length << ")";
+ // qDebug() << "New packet (" << type << ", " << length << ")";
 
   switch(type) {
     case KittyGG::Packets::P_WELCOME:
@@ -378,7 +379,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
     case KittyGG::Packets::P_MSG_RECV:
     {
-      qDebug() << "It's P_MSG_RECV";
+      //qDebug() << "It's P_MSG_RECV";
 
       int left = length;
       while(left > 0) {
@@ -426,19 +427,99 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
           read += plain_length;
         }
 
-        quint8 flag;
-        str >> flag;
-        read += sizeof(flag);
+        quint16 text_attr_length;
+        char *text_attr = 0;
 
-        quint16 attr_length;
-        str >> attr_length;
-        read += sizeof(attr_length);
+        while(read != left) {
+          quint8 flag;
+          str >> flag;
+          //qDebug() << "flag" << flag;
+          read += sizeof(flag);
 
-        char *attr = 0;
-        if(attr_length > 0) {
-          attr = new char[attr_length];
-          str.readRawData(attr, attr_length);
-          read += attr_length;
+          switch(flag) {
+            case 0x01: //conference
+            {
+              quint32 count;
+              str >> count;
+              read += sizeof(count);
+
+              QList<quint32> recipients;
+              for(quint32 i = 0; i < count; i++) {
+                quint32 uid;
+                str >> uid;
+                read += sizeof(uid);
+
+                recipients.append(uid);
+              }
+
+              qDebug() << count << "more people here:" << recipients;
+            }
+            break;
+
+            //text attributes
+            case 0x02:
+            {
+              str >> text_attr_length;
+              read += sizeof(text_attr_length);
+
+              if(text_attr_length > 0) {
+                text_attr = new char[text_attr_length];
+                str.readRawData(text_attr, text_attr_length);
+                read += text_attr_length;
+              }
+            }
+            break;
+
+            //image
+            case 0x05:
+            case 0x06:
+            {
+              quint32 size;
+              str >> size;
+              read += sizeof(size);
+
+              quint32 crc32;
+              str >> crc32;
+              read += sizeof(crc32);
+
+              int data_length = left - read;
+              char *raw = 0;
+              if(data_length > 0) {
+                raw = new char[data_length];
+                str.readRawData(raw, data_length);
+                read += data_length;
+              }
+
+              QByteArray data(raw, data_length);
+
+              //filename is specified only in 1st packet
+              if(flag == 0x05) {
+                int zero = data.indexOf((char)0x00);
+                if(zero > -1) {
+                  QByteArray fileName = data.mid(0, zero);
+                  data = data.mid(zero + 1);
+
+                  GGImgTransfer *img = new GGImgTransfer(fileName, crc32, size);
+                  m_imgTransfers.append(img);
+                }
+              }
+
+              GGImgTransfer *img = imgTransferByCrc(crc32);
+              if(img) {
+                img->data.append(data);
+                img->received += data.size();
+                if(img->received == img->size) {
+                  emit imageReceived(sender, img->fileName, img->crc32, img->data);
+
+                  m_imgTransfers.removeAll(img);
+                  delete img;
+                }
+              } else {
+                qWarning() << "Image not in transfer list!" << crc32;
+              }
+            }
+            break;
+          }
         }
 
         QString text;
@@ -446,8 +527,22 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
           text = QString::fromAscii(html);
           text.replace(QRegExp("\\s{0,}font-family:'[^']*';\\s{0,}", Qt::CaseInsensitive), "");
           text.replace(QRegExp("\\s{0,}font-size:[^pt]*pt;\\s{0,}", Qt::CaseInsensitive), "");
+
+          QRegExp imgs("<img name=\"([0-9a-f]{8})([0-9a-f]{8})\">", Qt::CaseInsensitive);
+          int pos = 0;
+          while((pos = imgs.indexIn(text, pos)) != -1) {
+            quint32 size = imgs.cap(2).toUInt(0, 16);
+            quint32 crc32 = imgs.cap(1).toUInt(0, 16);
+
+            GGImgTransfer *img = imgTransferByCrc(crc32);
+            if(!img) {
+              requestImage(sender, size, crc32);
+            }
+
+            pos += imgs.matchedLength();
+          }
         } else {
-          text = plainToHtml(QString::fromLocal8Bit(plain), QByteArray(attr, attr_length));
+          text = plainToHtml(sender, QString::fromLocal8Bit(plain), QByteArray(text_attr, text_attr_length));
         }
 
         QDateTime qtime = QDateTime::currentDateTime();
@@ -455,7 +550,9 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
           qtime.setTime_t(time);
         }
 
-        emit messageReceived(sender, qtime, text);
+        if(text.length() > 0) {
+          emit messageReceived(sender, qtime, text);
+        }
 
         left -= read;
         if(left > 0) {
@@ -765,7 +862,7 @@ void KittySDK::GGClient::sendPacket(const int &type, const QByteArray &data, con
   }
 }
 
-QString KittySDK::GGClient::plainToHtml(const QString &plain, const QByteArray &attr)
+QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr)
 {
   QDataStream str(attr);
   str.setByteOrder(QDataStream::LittleEndian);
@@ -799,6 +896,25 @@ QString KittySDK::GGClient::plainToHtml(const QString &plain, const QByteArray &
 
     if(font & KittyGG::Fonts::F_IMAGE) {
       qDebug() << "Image!";
+
+      quint8 length;
+      str >> length;
+      attr_length -= sizeof(length);
+
+      quint8 type;
+      str >> type;
+      attr_length -= sizeof(type);
+
+      quint32 size;
+      str >> size;
+      attr_length -= sizeof(size);
+
+      quint32 crc32;
+      str >> crc32;
+      attr_length -= sizeof(crc32);
+
+      qDebug() << length << type << size << crc32;
+      requestImage(sender, size, crc32);
     } else {
       QString style;
 
@@ -937,4 +1053,25 @@ void KittySDK::GGClient::parseXMLRoster(const QString &xml)
   } else {
     qWarning() << "Wrong format!";
   }
+}
+
+void KittySDK::GGClient::requestImage(const quint32 &sender, const quint32 &size, const quint32 &crc32)
+{
+  QByteArray footer;
+  footer.append((char)0x04);
+  footer.append((char*)&size, sizeof(size));
+  footer.append((char*)&crc32, sizeof(crc32));
+
+  sendMessage(sender, "", footer);
+}
+
+KittySDK::GGImgTransfer *KittySDK::GGClient::imgTransferByCrc(const quint32 &crc32)
+{
+  foreach(GGImgTransfer *img, m_imgTransfers) {
+    if(img->crc32 == crc32) {
+      return img;
+    }
+  }
+
+  return 0;
 }
