@@ -10,6 +10,7 @@
 
 #include <QtCore/QDebug>
 #include <QtGui/QTextDocument>
+#include <QtGui/QInputDialog>
 #include <QtGui/QFileDialog>
 #include <QtGui/QMenu>
 
@@ -23,7 +24,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
   m_client = new GGClient(this);
   connect(m_client, SIGNAL(statusChanged(quint32,quint32,QString)), this, SLOT(changeContactStatus(quint32,quint32,QString)));
   connect(m_client, SIGNAL(userDataReceived(quint32,QString,QString)), this, SLOT(processUserData(quint32,QString,QString)));
-  connect(m_client, SIGNAL(messageReceived(quint32,QDateTime,QString)), this, SLOT(processMessage(quint32,QDateTime,QString)));
+  connect(m_client, SIGNAL(messageReceived(QList<quint32>,QDateTime,QString)), this, SLOT(processMessage(QList<quint32>,QDateTime,QString)));
   connect(m_client, SIGNAL(imageReceived(quint32,QString,quint32,QByteArray)), this, SLOT(processImage(quint32,QString,quint32,QByteArray)));
   connect(m_client, SIGNAL(contactImported(quint32,QMap<QString,QString>)), this, SLOT(importContact(quint32,QMap<QString,QString>)));
 
@@ -37,6 +38,11 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
 
   importMenu->addAction(tr("From server"), this, SLOT(importFromServer()));
   importMenu->addAction(tr("From file"), this, SLOT(importFromFile()));
+
+  m_statusMenu->addSeparator();
+  m_descriptionAction = new QAction(tr("Description..."), this);
+  connect(m_descriptionAction, SIGNAL(triggered()), this, SLOT(showDescriptionInput()));
+  m_statusMenu->addAction(m_descriptionAction);
 
   m_statusMenu->addSeparator();
 
@@ -78,6 +84,11 @@ quint32 KittySDK::GGAccount::uin() const
 Protocol::Status KittySDK::GGAccount::status() const
 {
   return dynamic_cast<KittySDK::GGProtocol*>(protocol())->convertStatus(m_client->status());
+}
+
+QString KittySDK::GGAccount::description() const
+{
+  return m_client->description();
 }
 
 Contact *KittySDK::GGAccount::newContact(const QString &uid)
@@ -125,16 +136,26 @@ void KittySDK::GGAccount::insertContact(const QString &uid, Contact *contact)
 void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 {
   m_client->setAccount(uin(), password());
+
+  int count = settings.value("descriptionCount").toInt();
+  for(int i = 0; i < count; i++) {
+    m_descriptionHistory.append(settings.value(QString("description%1").arg(i)).toString());
+  }
 }
 
 QMap<QString, QVariant> GGAccount::saveSettings()
 {
   QMap<QString, QVariant> settings;
 
+  settings.insert("descriptionCount", m_descriptionHistory.count());
+  for(int i = 0; i < m_descriptionHistory.count(); i++) {
+    settings.insert(QString("description%1").arg(i), m_descriptionHistory.at(i));
+  }
+
   return settings;
 }
 
-void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status, const QString &description)
+void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status, const QString &descr)
 {
   quint32 stat = KittyGG::Statuses::S_AVAILABLE;
   switch(status) {
@@ -163,7 +184,9 @@ void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status,
     break;
   }
 
-  m_client->changeStatus(stat, description);
+  if((stat != m_client->status()) || (descr != this->description())) {
+    m_client->changeStatus(stat, descr);
+  }
 }
 
 QMenu *KittySDK::GGAccount::statusMenu()
@@ -209,9 +232,16 @@ void KittySDK::GGAccount::processUserData(const quint32 &uin, const QString &nam
   }
 }
 
-void KittySDK::GGAccount::processMessage(const quint32 &sender, const QDateTime &time, const QString &plain)
+void KittySDK::GGAccount::processMessage(QList<quint32> senders, const QDateTime &time, const QString &plain)
 {
-  Message msg(contactByUin(sender), me());
+  QList<Contact*> contacts;
+  for(int i = 1; i < senders.count(); i++) {
+    contacts.append(contactByUin(senders[i]));
+  }
+  contacts.prepend(me());
+
+  qDebug() <<  contacts.count();
+  Message msg(contactByUin(senders.first()), contacts);
   msg.setDirection(Message::Incoming);
   msg.setBody(plain);
   msg.setTimeStamp(time);
@@ -284,34 +314,54 @@ void KittySDK::GGAccount::importContact(const quint32 &uin, const QMap<QString, 
 */
 }
 
+
+void KittySDK::GGAccount::showDescriptionInput()
+{
+  QInputDialog dialog;
+  dialog.setLabelText(tr("New description:"));
+  dialog.setComboBoxEditable(true);
+  dialog.setComboBoxItems(m_descriptionHistory);
+
+  if(dialog.exec() == QDialog::Accepted) {
+    QString description = dialog.textValue();
+
+    if(!description.isEmpty()) {
+        m_descriptionHistory.removeAll(description);
+        m_descriptionHistory.prepend(description);
+    }
+
+    m_client->setDescription(description);
+  }
+}
+
 void KittySDK::GGAccount::setStatusAvailable()
 {
-  m_client->setStatus(KittyGG::Statuses::S_AVAILABLE);
+  m_client->changeStatus(KittyGG::Statuses::S_AVAILABLE, description());
 }
 
 void KittySDK::GGAccount::setStatusAway()
 {
-  m_client->setStatus(KittyGG::Statuses::S_BUSY);
+  m_client->changeStatus(KittyGG::Statuses::S_BUSY, description());
 }
 
 void KittySDK::GGAccount::setStatusFFC()
 {
-  m_client->setStatus(KittyGG::Statuses::S_FFC);
+  m_client->changeStatus(KittyGG::Statuses::S_FFC, description());
 }
 
 void KittySDK::GGAccount::setStatusDND()
 {
-  m_client->setStatus(KittyGG::Statuses::S_DND);
+  m_client->changeStatus(KittyGG::Statuses::S_DND, description());
 }
 
 void KittySDK::GGAccount::setStatusInvisible()
 {
-  m_client->setStatus(KittyGG::Statuses::S_INVISIBLE);
+  m_client->changeStatus(KittyGG::Statuses::S_INVISIBLE, description());
 }
 
 void KittySDK::GGAccount::setStatusUnavailable()
 {
-  m_client->setStatus(KittyGG::Statuses::S_UNAVAILABLE);
+  m_client->changeStatus(KittyGG::Statuses::S_UNAVAILABLE, description());
 }
 
 void KittySDK::GGAccount::importFromServer()

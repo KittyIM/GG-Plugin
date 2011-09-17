@@ -96,9 +96,10 @@ void KittySDK::GGClient::setStatus(const quint32 &status)
 
 void KittySDK::GGClient::setDescription(const QString &description)
 {
-  m_description = description;
-
-  if(isConnected()) {
+  if(!isConnected()) {
+    m_initialDescription = description;
+  } else {
+    m_description = description;
     sendChangeStatusPacket();
   }
 }
@@ -138,8 +139,6 @@ void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
 {
   m_host = host;
   m_port = port;
-  m_status = m_initialStatus;
-  m_description = m_initialDescription;
 
   m_socket->connectToHost(host, port);
 }
@@ -193,6 +192,9 @@ void KittySDK::GGClient::changeStatus(const quint32 &status, const QString &desc
     m_description = description;
 
     sendChangeStatusPacket();
+  } else {
+    setDescription(description);
+    setStatus(status);
   }
 }
 
@@ -231,8 +233,10 @@ void KittySDK::GGClient::disconnected()
 {
   qDebug() << "Socket::Disconnected";
 
+  m_status = KittyGG::Statuses::S_UNAVAILABLE_D;
   emit statusChanged(uin(), m_status, m_description);
 
+  m_thread->terminate();
   m_pingTimer.stop();
 }
 
@@ -279,6 +283,9 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
     case KittyGG::Packets::P_LOGIN_OK:
     {
       qDebug() << "It's P_LOGIN_OK";
+
+      m_status = m_initialStatus;
+      m_description = m_initialDescription;
 
       quint32 unknown;
       str >> unknown;
@@ -345,6 +352,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
         left -= sizeof(description_size);
 
         char *description = new char[description_size];
+        memset(description, 0, sizeof(description));
         if(description_size > 0) {
           str.readRawData(description, description_size);
           left -= description_size;
@@ -352,7 +360,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
         if(uin == m_uin) {
           m_status = status;
-          m_description = description;
+          m_description = QString::fromAscii(description, description_size);
         }
 
         //qDebug() << uin << status << QString::fromAscii(description, description_size);
@@ -385,9 +393,13 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
       while(left > 0) {
         int read = 0;
 
+        QList<quint32> senders;
+
         quint32 sender;
         str >> sender;
         read += sizeof(sender);
+
+        senders.append(sender);
 
         quint32 seq;
         str >> seq;
@@ -443,16 +455,13 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
               str >> count;
               read += sizeof(count);
 
-              QList<quint32> recipients;
               for(quint32 i = 0; i < count; i++) {
                 quint32 uid;
                 str >> uid;
                 read += sizeof(uid);
 
-                recipients.append(uid);
+                senders.append(uid);
               }
-
-              qDebug() << count << "more people here:" << recipients;
             }
             break;
 
@@ -541,6 +550,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
             pos += imgs.matchedLength();
           }
+
+          text.replace(imgs, "");
         } else {
           text = plainToHtml(sender, QString::fromLocal8Bit(plain), QByteArray(text_attr, text_attr_length));
         }
@@ -551,7 +562,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
         }
 
         if(text.length() > 0) {
-          emit messageReceived(sender, qtime, text);
+          emit messageReceived(senders, qtime, text);
         }
 
         left -= read;
@@ -750,7 +761,7 @@ void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
   data.append(hash.result().data(), 64);
 
   // status
-  tmp32 = status() | 0x4000;
+  tmp32 = m_initialStatus | 0x4000;
   data.append((char*)&tmp32, sizeof(tmp32));
 
   // flags
@@ -778,9 +789,9 @@ void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
   data.append("KittyIM", strlen("KittyIM"));
 
   // description_size & description
-  tmp32 = m_description.size();
+  tmp32 = m_initialDescription.size();
   data.append((char*)&tmp32, sizeof(tmp32));
-  data.append(m_description.toLocal8Bit().data(), m_description.length());
+  data.append(m_initialDescription.toLocal8Bit().data(), m_initialDescription.length());
 
   sendPacket(KittyGG::Packets::P_LOGIN, data, data.size());
 }

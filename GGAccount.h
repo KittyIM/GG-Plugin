@@ -4,6 +4,8 @@
 #include "SDK/Account.h"
 #include "GGProtocol.h"
 
+#include <QtCore/QStringList>
+
 namespace KittySDK
 {
   class Protocol;
@@ -20,6 +22,7 @@ namespace KittySDK
 
       quint32 uin() const;
       Protocol::Status status() const;
+      QString description() const;
       Contact *newContact(const QString &uid);
       Contact *newContact(const quint32 &uin);
 
@@ -36,9 +39,10 @@ namespace KittySDK
     private slots:
       void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
       void processUserData(const quint32 &uin, const QString &name, const QString &data);
-      void processMessage(const quint32 &sender, const QDateTime &time, const QString &plain);
+      void processMessage(QList<quint32> senders, const QDateTime &time, const QString &plain);
       void processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data);
       void importContact(const quint32 &uin, const QMap<QString, QString> &data);
+      void showDescriptionInput();
       void setStatusAvailable();
       void setStatusAway();
       void setStatusFFC();
@@ -51,12 +55,14 @@ namespace KittySDK
     private:
       GGClient *m_client;
       QMenu *m_statusMenu;
+      QStringList m_descriptionHistory;
       QAction *m_availableAction;
       QAction *m_awayAction;
       QAction *m_ffcAction;
       QAction *m_dndAction;
       QAction *m_invisibleAction;
       QAction *m_unavailableAction;
+      QAction *m_descriptionAction;
   };
 }
 

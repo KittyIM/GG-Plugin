@@ -96,7 +96,7 @@ namespace KittySDK
 
     signals:
       void statusChanged(const quint32 &uin, const quint32 &status, const QString &description);
-      void messageReceived(const quint32 &sender, const QDateTime &time, const QString &plain);
+      void messageReceived(QList<quint32> senders, const QDateTime &time, const QString &plain);
       void userDataReceived(const quint32 &uin, const QString &name, const QString &data);
       void xmlActionReceived(const QString &xmlAction);
       void contactImported(const quint32 &uin, const QMap<QString, QString> &data);
@@ -131,7 +131,6 @@ namespace KittySDK
       QString m_initialDescription;
       QTimer m_pingTimer;
       QTcpSocket *m_socket;
-      //QByteArray m_buffer;
       QList<quint32> m_roster;
       QList<GGImgTransfer*> m_imgTransfers;
       GGThread *m_thread;
