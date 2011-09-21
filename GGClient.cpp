@@ -366,6 +366,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
         //qDebug() << uin << status << QString::fromAscii(description, description_size);
 
         emit statusChanged(uin, status, QString::fromAscii(description, description_size));
+
+        delete description;
       }
 
       if(left > 0) {
@@ -382,6 +384,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
       str.readRawData(data, length);
 
       emit xmlActionReceived(QString::fromAscii(data, length));
+
+      delete data;
     }
     break;
 
@@ -513,6 +517,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
                 }
               }
 
+              delete raw;
+
               GGImgTransfer *img = imgTransferByCrc(crc32);
               if(img) {
                 img->data.append(data);
@@ -564,6 +570,10 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
         if(text.length() > 0) {
           emit messageReceived(senders, qtime, text);
         }
+
+        delete text_attr;
+        delete html;
+        delete plain;
 
         left -= read;
         if(left > 0) {
@@ -649,6 +659,9 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
           emit userDataReceived(uin, QString::fromAscii(name, name_size), QString::fromAscii(value, value_size));
 
+          delete name;
+          delete value;
+
           num2--;
         }
 
@@ -723,6 +736,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
       } while(ret != Z_STREAM_END);
 
       inflateEnd(&strm);
+
+      delete data;
 
       parseXMLRoster(outData);
     }
