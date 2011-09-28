@@ -8,6 +8,7 @@
 #include <QtCore/QRegExp>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
+#include <QtNetwork/QNetworkProxy>
 #include <QtXml/QDomDocument>
 #include <QtXml/QDomElement>
 
@@ -56,6 +57,7 @@ void KittySDK::GGThread::bufferAppend(const QByteArray &buf)
 KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 {
   m_socket = new QTcpSocket(this);
+  m_socket->setProxy(QNetworkProxy::applicationProxy());
 
   connect(m_socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
   connect(m_socket, SIGNAL(connected()), this, SLOT(connected()));
@@ -242,7 +244,7 @@ void KittySDK::GGClient::disconnected()
 
 void KittySDK::GGClient::error(QAbstractSocket::SocketError socketError)
 {
-  qDebug() << "Socket::error(" << socketError << ")";
+  qDebug() << "Socket::error(" << socketError << ")" << m_socket->errorString();
 }
 
 void KittySDK::GGClient::hostFound()

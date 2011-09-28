@@ -88,7 +88,7 @@ namespace KittySDK
       void removeContact(const quint32 &uin);
 
     public slots:
-      void connectToHost(const QString &host = "91.214.237.54", const int &port = 8074);
+      void connectToHost(const QString &host = "91.214.237.49", const int &port = 8074);
       void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
       void changeStatus(const quint32 &status, const QString &description);
       void requestRoster();
