@@ -197,8 +197,9 @@ QMenu *KittySDK::GGAccount::statusMenu()
 void KittySDK::GGAccount::sendMessage(const Message &msg)
 {
   if(m_client->isConnected()) {
-    GGContact *cnt = dynamic_cast<GGContact*>(msg.to().first());
-    m_client->sendMessage(cnt->uin(), msg.body());
+    if(GGContact *cnt = dynamic_cast<GGContact*>(msg.to().first())) {
+      m_client->sendMessage(cnt->uin(), msg.body());
+    }
   } else {
     Message err(msg.to().first(), me());
     err.setBody(tr("Not connected!"));
@@ -212,8 +213,9 @@ void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 
   QString uid = QString::number(uin);
 
   if(uid == this->uid()) {
-    GGProtocol *ggproto = dynamic_cast<KittySDK::GGProtocol*>(protocol());
-    emit statusChanged(ggproto->convertStatus(status), description);
+    if(GGProtocol *ggproto = dynamic_cast<KittySDK::GGProtocol*>(protocol())) {
+      emit statusChanged(ggproto->convertStatus(status), description);
+    }
   }
 
   if(contacts().contains(uid)) {
