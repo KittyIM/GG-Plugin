@@ -7,7 +7,7 @@
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
 #include <QtCore/QMutex>
-#include <QtNetwork/QTcpSocket>
+#include <QtNetwork/QSslSocket>
 
 
 namespace KittySDK
@@ -88,7 +88,8 @@ namespace KittySDK
       void removeContact(const quint32 &uin);
 
     public slots:
-      void connectToHost(const QString &host = "91.214.237.49", const int &port = 8074);
+      void connectToHost(const QString &host, const int &port = 8074);
+      void connectToHostSSL(const QString &host, const int &port = 443);
       void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
       void changeStatus(const quint32 &status, const QString &description);
       void requestRoster();
@@ -130,7 +131,7 @@ namespace KittySDK
       quint32 m_initialStatus;
       QString m_initialDescription;
       QTimer m_pingTimer;
-      QTcpSocket *m_socket;
+      QSslSocket *m_socket;
       QList<quint32> m_roster;
       QList<GGImgTransfer*> m_imgTransfers;
       GGThread *m_thread;

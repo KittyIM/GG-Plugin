@@ -8,6 +8,7 @@
 #include <QtCore/QRegExp>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
+#include <QtCore/QUrl>
 #include <QtNetwork/QNetworkProxy>
 #include <QtXml/QDomDocument>
 #include <QtXml/QDomElement>
@@ -56,7 +57,7 @@ void KittySDK::GGThread::bufferAppend(const QByteArray &buf)
 
 KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 {
-  m_socket = new QTcpSocket(this);
+  m_socket = new QSslSocket(this);
   m_socket->setProxy(QNetworkProxy::applicationProxy());
 
   connect(m_socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
@@ -72,7 +73,6 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
   m_status = KittyGG::Statuses::S_UNAVAILABLE;
 
   m_initialStatus = KittyGG::Statuses::S_AVAILABLE;
-  m_initialDescription = "Kitty is alive!";
 
   m_pingTimer.setInterval(3 * 60 * 1000);
   m_thread = new GGThread(this);
@@ -89,7 +89,7 @@ void KittySDK::GGClient::setStatus(const quint32 &status)
   if(!isConnected()) {
     m_initialStatus = status;
 
-    connectToHost();
+    connectToHostSSL("ggproxy-26.gadu-gadu.pl");
   } else {
     m_status = status;
     sendChangeStatusPacket();
@@ -142,7 +142,15 @@ void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
   m_host = host;
   m_port = port;
 
-  m_socket->connectToHost(host, port);
+  m_socket->connectToHost(m_host, m_port);
+}
+
+void KittySDK::GGClient::connectToHostSSL(const QString &host, const int &port)
+{
+  m_host = host;
+  m_port = port;
+
+  m_socket->connectToHostEncrypted(m_host, m_port);
 }
 
 void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer)
@@ -1103,3 +1111,5 @@ KittySDK::GGImgTransfer *KittySDK::GGClient::imgTransferByCrc(const quint32 &crc
 
   return 0;
 }
+
+
