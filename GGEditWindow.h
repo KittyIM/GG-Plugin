@@ -5,36 +5,36 @@
 
 namespace KittySDK
 {
-  class Account;
-  class Protocol;
+	class Account;
+	class Protocol;
 
-  namespace Ui
-  {
-    class GGEditWindow;
-  }
+	namespace Ui
+	{
+		class GGEditWindow;
+	}
 
-  class GGEditWindow: public QWidget
-  {
-    Q_OBJECT
+	class GGEditWindow: public QWidget
+	{
+			Q_OBJECT
 
-    public:
-      GGEditWindow(KittySDK::Protocol *proto, QWidget *parent = 0);
-      ~GGEditWindow();
+		public:
+			GGEditWindow(KittySDK::Protocol *proto, QWidget *parent = 0);
+			~GGEditWindow();
 
-      void reset();
-      void setup(KittySDK::Account *account);
+			void reset();
+			void setup(KittySDK::Account *account);
 
-    protected:
-      void showEvent(QShowEvent *event);
+		protected:
+			void showEvent(QShowEvent *event);
 
-    private slots:
-      void on_buttonBox_accepted();
+		private slots:
+			void on_buttonBox_accepted();
 
-    private:
-      Ui::GGEditWindow *m_ui;
-      KittySDK::Protocol *m_protocol;
-      KittySDK::Account *m_account;
-  };
+		private:
+			Ui::GGEditWindow *m_ui;
+			KittySDK::Protocol *m_protocol;
+			KittySDK::Account *m_account;
+	};
 }
 
 #endif // GGEDITWINDOW_H
