@@ -8,7 +8,10 @@
 #include <QtCore/QRegExp>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
+#include <QtCore/QDir>
 #include <QtCore/QUrl>
+#include <QtGui/QTextDocument>
+#include <QtGui/QTextBlock>
 #include <QtNetwork/QNetworkProxy>
 #include <QtXml/QDomDocument>
 #include <QtXml/QDomElement>
@@ -43,6 +46,10 @@ void KittySDK::GGThread::run()
 		}
 
 		mutex.unlock();
+
+		if(stop) {
+			break;
+		}
 	}
 }
 
@@ -81,6 +88,10 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 
 KittySDK::GGClient::~GGClient()
 {
+	m_thread->stop = true;
+	m_thread->wait();
+
+	//delete m_thread;
 	delete m_socket;
 }
 
@@ -155,9 +166,11 @@ void KittySDK::GGClient::connectToHostSSL(const QString &host, const int &port)
 
 void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer)
 {
-	qDebug() << "sending message";
+	//qDebug() << "sending message";
 	QByteArray data;
 	quint32 tmp32;
+
+	QByteArray plain = richToPlain(text).toLocal8Bit();
 
 	// recipient
 	tmp32 = recipient;
@@ -172,27 +185,73 @@ void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &te
 	data.append((char*)&tmp32, sizeof(tmp32));
 
 	// offset_plain
-	tmp32 = sizeof(quint32) * 5 + text.size();
+	tmp32 = sizeof(quint32) * 5;
 	data.append((char*)&tmp32, sizeof(tmp32));
 
 	// offset_attributes
-	tmp32 = sizeof(quint32) * 5 + (text.size() * 2);
+	tmp32 = sizeof(quint32) * 5 + plain.size();
 	data.append((char*)&tmp32, sizeof(tmp32));
 
-	data.append(text.toAscii().data(), text.length());
-	data.append(text.toLocal8Bit().data(), text.length());
-	data.append((char)0x02);
-	data.append((char)0x06);
-	data.append((char)0x00);
-	data.append((char)0x00);
-	data.append((char)0x00);
-	data.append((char)0x08);
-	data.append((char)0x00);
-	data.append((char)0x00);
-	data.append((char)0x00);
+	//html_message
+	//data.append(html.data(), html.size());
+
+	//plain_message
+	data.append(plain.data(), plain.size());
+
+	//attributes
+	if(!footer.size()) {
+		QByteArray attr = htmlToPlain(text);
+		data.append(attr.data(), attr.size());
+	}
+
+	//footer
 	data.append(footer);
 
 	sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
+}
+
+void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
+{
+	//qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
+	QFile file(image->filePath + "/" + image->fileName);
+	if(file.open(QFile::ReadOnly)) {
+		//qDebug() << "file opened";
+
+		QByteArray buffer = file.readAll();
+		QByteArray fileName = image->fileName.toLocal8Bit();
+		quint8 flag = 0x05;
+
+		//qDebug() << "buff_size" << buffer.size();
+		while(buffer.size()) {
+			//qDebug() << "sending part, flag" << flag;
+
+			QByteArray footer;
+
+			footer.append((char*)&flag, sizeof(flag));
+			footer.append((char*)&image->size, sizeof(image->size));
+			footer.append((char*)&image->crc32, sizeof(image->crc32));
+
+			if(flag == 0x05) {
+				footer.append(fileName.data(), fileName.size());
+				footer.append((char)0x00);
+
+				flag = 0x06;
+			}
+
+			footer.append(buffer.mid(0, 1905));
+
+			//qDebug() << "footer_size" << footer.size();
+
+			sendMessage(recipient, "", footer);
+
+			buffer = buffer.mid(1905);
+			//qDebug() << buffer.size() << "left";
+		}
+
+		//qDebug() << "image sent";
+
+		file.close();
+	}
 }
 
 void KittySDK::GGClient::changeStatus(const quint32 &status, const QString &description)
@@ -246,7 +305,7 @@ void KittySDK::GGClient::disconnected()
 	m_status = KittyGG::Statuses::S_UNAVAILABLE_D;
 	emit statusChanged(uin(), m_status, m_description);
 
-	m_thread->terminate();
+	m_thread->stop = true;
 	m_pingTimer.stop();
 }
 
@@ -276,7 +335,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 	QDataStream str(packet);
 	str.setByteOrder(QDataStream::LittleEndian);
 
-	// qDebug() << "New packet (" << type << ", " << length << ")";
+	 //qDebug() << "New packet (" << type << ", " << length << ")";
 
 	switch(type) {
 		case KittyGG::Packets::P_WELCOME:
@@ -377,7 +436,9 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 				emit statusChanged(uin, status, QString::fromAscii(description, description_size));
 
-				delete description;
+				if(description_size) {
+					delete description;
+				}
 			}
 
 			if(left > 0) {
@@ -479,7 +540,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 						}
 						break;
 
-							//text attributes
+						//text attributes
 						case 0x02:
 						{
 							str >> text_attr_length;
@@ -493,7 +554,28 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 						}
 						break;
 
-							//image
+						//image request
+						case 0x04:
+						{
+							quint32 size;
+							str >> size;
+							read += sizeof(size);
+
+							quint32 crc_32;
+							str >> crc_32;
+							read += sizeof(crc_32);
+
+							qDebug() << "someone requested an image" << size << crc_32;
+							GGImgUpload *img = imgUploadByCrc(crc_32);
+							if(img) {
+								sendImage(sender, img);
+							} else {
+								qWarning() << "Image not in upload list!" << crc_32;
+							}
+						}
+						break;
+
+						//image
 						case 0x05:
 						case 0x06:
 						{
@@ -501,9 +583,9 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 							str >> size;
 							read += sizeof(size);
 
-							quint32 crc32;
-							str >> crc32;
-							read += sizeof(crc32);
+							quint32 crc_32;
+							str >> crc_32;
+							read += sizeof(crc_32);
 
 							int data_length = left - read;
 							char *raw = 0;
@@ -522,25 +604,41 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 									QByteArray fileName = data.mid(0, zero);
 									data = data.mid(zero + 1);
 
-									GGImgTransfer *img = new GGImgTransfer(fileName, crc32, size);
-									m_imgTransfers.append(img);
+									/*QDir imgDir(protocol()->core()->profilesDir() + protocol()->core()->profileName() + "/imgcache/");
+									if(imgDir.exists(fileName)) {
+										QFile imgFile(imgDir.absolutePath() + "/" + fileName);
+										if(imgFile.open(QFile::ReadOnly)) {
+											QByteArray imgData = imgFile.readAll();
+											imgFile.close();
+
+											quint32 imgCrc = crc32(0, (Bytef*)imgData.constData(), imgData.size());
+											if(crc_32 == imgCrc) {
+												qDebug() << "Image cached!";
+											} else {
+												qDebug() << "Image in cache but wrong checksum";
+											}
+										}
+									}*/
+
+									GGImgDownload *img = new GGImgDownload(fileName, crc_32, size);
+									m_imgDownloads.append(img);
 								}
 							}
 
 							delete raw;
 
-							GGImgTransfer *img = imgTransferByCrc(crc32);
+							GGImgDownload *img = imgDownloadByCrc(crc_32);
 							if(img) {
 								img->data.append(data);
 								img->received += data.size();
 								if(img->received == img->size) {
 									emit imageReceived(sender, img->fileName, img->crc32, img->data);
 
-									m_imgTransfers.removeAll(img);
+									m_imgDownloads.removeAll(img);
 									delete img;
 								}
 							} else {
-								qWarning() << "Image not in transfer list!" << crc32;
+								qWarning() << "Image not in download list!" << crc_32;
 							}
 						}
 						break;
@@ -549,6 +647,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 				QString text;
 				if(html_length > 0) {
+					qDebug() << "using HTML";
+
 					text = QString::fromAscii(html);
 					text.replace(QRegExp("\\s{0,}font-family:'[^']*';\\s{0,}", Qt::CaseInsensitive), "");
 					text.replace(QRegExp("\\s{0,}font-size:[^pt]*pt;\\s{0,}", Qt::CaseInsensitive), "");
@@ -559,7 +659,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 						quint32 size = imgs.cap(2).toUInt(0, 16);
 						quint32 crc32 = imgs.cap(1).toUInt(0, 16);
 
-						GGImgTransfer *img = imgTransferByCrc(crc32);
+						GGImgDownload *img = imgDownloadByCrc(crc32);
 						if(!img) {
 							requestImage(sender, size, crc32);
 						}
@@ -568,7 +668,10 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 					}
 
 					text.replace(imgs, "");
+
+					qDebug() << "his html" << QString(text).replace("<", "&lt;");
 				} else {
+					qDebug() << "Using plaintext";
 					text = plainToHtml(sender, QString::fromLocal8Bit(plain), QByteArray(text_attr, text_attr_length));
 				}
 
@@ -596,7 +699,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 		case KittyGG::Packets::P_MSG_SEND_ACK:
 		{
-			qDebug() << "It's P_MSG_SEND_ACK";
+			//qDebug() << "It's P_MSG_SEND_ACK";
 
 			quint32 status;
 			str >> status;
@@ -898,6 +1001,130 @@ void KittySDK::GGClient::sendPacket(const int &type, const QByteArray &data, con
 	}
 }
 
+QByteArray GGClient::htmlToPlain(const QString &html)
+{
+	QByteArray attr;
+
+	quint16 position = 0;
+	quint8 font = 0;
+	quint8 color;
+
+	QTextDocument doc;
+	doc.setHtml(html);
+
+	for(QTextBlock block = doc.begin(); block != doc.end(); block = block.next()) {
+		for(QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
+			if(!it.fragment().isValid()) {
+				continue;
+			}
+
+			QTextCharFormat format = it.fragment().charFormat();
+			QTextImageFormat image = format.toImageFormat();
+
+			font = 0;
+
+			if(image.isValid()) {
+				font = KittyGG::Fonts::F_IMAGE;
+			} else {
+				font = KittyGG::Fonts::F_COLOR;
+
+				if(format.font().bold()) {
+					font |= KittyGG::Fonts::F_BOLD;
+				}
+
+				if(format.font().italic()) {
+					font |= KittyGG::Fonts::F_ITALIC;
+				}
+
+				if(format.font().underline()) {
+					font |= KittyGG::Fonts::F_UNDERLINE;
+				}
+			}
+
+			attr.append((char*)&position, sizeof(position));
+			attr.append((char*)&font, sizeof(font));
+
+			if(font & KittyGG::Fonts::F_COLOR) {
+				color = format.foreground().color().red();
+				attr.append((char*)&color, sizeof(color));
+
+				color = format.foreground().color().green();
+				attr.append((char*)&color, sizeof(color));
+
+				color = format.foreground().color().blue();
+				attr.append((char*)&color, sizeof(color));
+			}
+
+			if(font & KittyGG::Fonts::F_IMAGE) {
+				qDebug() << "appending image";
+
+				//length
+				attr.append(0x09);
+
+				//type
+				attr.append(0x01);
+
+				quint32 size;
+				quint32 crc_32;
+
+				qDebug() << "name: " << image.name();
+				QFileInfo info(image.name());
+				GGImgUpload *img = imgUploadByFileName(info.fileName());
+				if(img) {
+					qDebug() << "not the first time";
+
+					size = img->size;
+					crc_32 = img->crc32;
+				} else {
+					qDebug() << "first time, opening file";
+					QFile file(image.name());
+					if(file.open(QFile::ReadOnly)) {
+						size = file.size();
+						qDebug() << "size" << size;
+
+						crc_32 = crc32(0, (Bytef*)file.readAll().constData(), file.size());
+						qDebug() << "crc32" << crc_32;
+
+						img = new GGImgUpload(info.fileName(), info.path(), crc_32, size);
+						m_imgUploads.append(img);
+						qDebug() << "done";
+
+						file.close();
+					}
+				}
+
+				attr.append((char*)&size, sizeof(quint32));
+				attr.append((char*)&crc_32, sizeof(quint32));
+			}
+
+			position += it.fragment().text().size();
+		}
+	}
+
+	if(attr.size()) {
+		quint16 size = attr.size();
+		attr.prepend((char*)&size, sizeof(quint16));
+
+		//type
+		attr.prepend(0x02);
+	}
+
+	return attr;
+}
+
+QString GGClient::richToPlain(const QString &html)
+{
+	QString plain = html;
+
+	plain.remove(QRegExp("<[^>]*>"));
+	plain.replace("&quot;", "\"");
+	plain.replace("&lt;", "<");
+	plain.replace("&gt;", ">");
+	plain.replace("&amp;", "&");
+
+	return plain;
+}
+
 QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr)
 {
 	QDataStream str(attr);
@@ -995,7 +1222,7 @@ QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &pl
 			code.append(">");
 
 			fragment.replace("&", "&amp;");
-			fragment.replace("<", "&lt;");;
+			fragment.replace("<", "&lt;");
 			fragment.replace(">", "&gt;");
 			fragment.replace("\"", "&quot;");
 
@@ -1007,7 +1234,7 @@ QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &pl
 
 	fragment = plain.mid(last_pos);
 	fragment.replace("&", "&amp;");
-	fragment.replace("<", "&lt;");;
+	fragment.replace("<", "&lt;");
 	fragment.replace(">", "&gt;");
 	fragment.replace("\"", "&quot;");
 
@@ -1101,10 +1328,32 @@ void KittySDK::GGClient::requestImage(const quint32 &sender, const quint32 &size
 	sendMessage(sender, "", footer);
 }
 
-KittySDK::GGImgTransfer *KittySDK::GGClient::imgTransferByCrc(const quint32 &crc32)
+KittySDK::GGImgDownload *KittySDK::GGClient::imgDownloadByCrc(const quint32 &crc32)
 {
-	foreach(GGImgTransfer *img, m_imgTransfers) {
+	foreach(GGImgDownload *img, m_imgDownloads) {
 		if(img->crc32 == crc32) {
+			return img;
+		}
+	}
+
+	return 0;
+}
+
+GGImgUpload *GGClient::imgUploadByCrc(const quint32 &crc32)
+{
+	foreach(GGImgUpload *img, m_imgUploads) {
+		if(img->crc32 == crc32) {
+			return img;
+		}
+	}
+
+	return 0;
+}
+
+GGImgUpload *GGClient::imgUploadByFileName(const QString &fileName)
+{
+	foreach(GGImgUpload *img, m_imgUploads) {
+		if(img->fileName == fileName) {
 			return img;
 		}
 	}

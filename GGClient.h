@@ -19,21 +19,22 @@ namespace KittySDK
 			Q_OBJECT
 
 		public:
-			GGThread(QObject *parent = 0): QThread(parent) { }
+			GGThread(QObject *parent = 0): QThread(parent), stop(false) { }
 
 			void run();
 			void bufferAppend(const QByteArray &buf);
 
 			QMutex mutex;
 			QByteArray buffer;
+			bool stop;
 
 		signals:
 			void packetReceived(quint32 type, quint32 length, QByteArray packet);
 	};
 
-	struct GGImgTransfer
+	struct GGImgDownload
 	{
-			GGImgTransfer(const QString &fileName, const quint32 &crc32, const quint32 &size):
+			GGImgDownload(const QString &fileName, const quint32 &crc32, const quint32 &size):
 				fileName(fileName),
 				size(size),
 				received(0),
@@ -44,6 +45,21 @@ namespace KittySDK
 			QByteArray data;
 			quint32 size;
 			quint32 received;
+			quint32 crc32;
+	};
+
+	struct GGImgUpload
+	{
+			GGImgUpload(const QString &fileName, const QString &filePath, const quint32 &crc32, const quint32 &size):
+				fileName(fileName),
+				filePath(filePath),
+				size(size),
+				crc32(crc32)
+			{ }
+
+			QString fileName;
+			QString filePath;
+			quint32 size;
 			quint32 crc32;
 	};
 
@@ -91,6 +107,7 @@ namespace KittySDK
 			void connectToHost(const QString &host, const int &port = 8074);
 			void connectToHostSSL(const QString &host, const int &port = 443);
 			void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
+			void sendImage(const quint32 &recipient, GGImgUpload *image);
 			void changeStatus(const quint32 &status, const QString &description);
 			void requestRoster();
 			void parseXMLRoster(const QString &xml);
@@ -117,9 +134,13 @@ namespace KittySDK
 			void sendChangeStatusPacket();
 			void sendPingPacket();
 			void sendPacket(const int &type, const QByteArray &data = QByteArray(), const quint32 &size = 0);
+			QByteArray htmlToPlain(const QString &html);
+			QString richToPlain(const QString &html);
 			QString plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr);
 			void requestImage(const quint32 &sender, const quint32 &size, const quint32 &crc32);
-			GGImgTransfer *imgTransferByCrc(const quint32 &crc32);
+			GGImgDownload *imgDownloadByCrc(const quint32 &crc32);
+			GGImgUpload *imgUploadByCrc(const quint32 &crc32);
+			GGImgUpload *imgUploadByFileName(const QString &fileName);
 
 		private:
 			QString m_host;
@@ -133,7 +154,8 @@ namespace KittySDK
 			QTimer m_pingTimer;
 			QSslSocket *m_socket;
 			QList<quint32> m_roster;
-			QList<GGImgTransfer*> m_imgTransfers;
+			QList<GGImgDownload*> m_imgDownloads;
+			QList<GGImgUpload*> m_imgUploads;
 			GGThread *m_thread;
 	};
 }

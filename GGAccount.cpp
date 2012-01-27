@@ -199,6 +199,7 @@ void KittySDK::GGAccount::sendMessage(const Message &msg)
 			m_client->sendMessage(cnt->uin(), msg.body());
 		}
 	} else {
+		//TODO: Create a queue and send when connected
 		Message err(msg.to().first(), me());
 		err.setBody(tr("Not connected!"));
 		err.setDirection(Message::System);
