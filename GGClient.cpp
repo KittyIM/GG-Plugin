@@ -212,19 +212,15 @@ void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &te
 
 void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
 {
-	//qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
+	qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
+
 	QFile file(image->filePath + "/" + image->fileName);
 	if(file.open(QFile::ReadOnly)) {
-		//qDebug() << "file opened";
-
 		QByteArray buffer = file.readAll();
 		QByteArray fileName = image->fileName.toLocal8Bit();
 		quint8 flag = 0x05;
 
-		//qDebug() << "buff_size" << buffer.size();
 		while(buffer.size()) {
-			//qDebug() << "sending part, flag" << flag;
-
 			QByteArray footer;
 
 			footer.append((char*)&flag, sizeof(flag));
@@ -240,15 +236,12 @@ void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
 
 			footer.append(buffer.mid(0, 1905));
 
-			//qDebug() << "footer_size" << footer.size();
-
 			sendMessage(recipient, "", footer);
 
 			buffer = buffer.mid(1905);
-			//qDebug() << buffer.size() << "left";
 		}
 
-		//qDebug() << "image sent";
+		qDebug() << "image sent";
 
 		file.close();
 	}
@@ -725,6 +718,8 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 			quint32 uin;
 			str >> uin;
+
+			emit typingNotifyReceived(uin, type);
 
 			if(type > 0) {
 				qDebug() << uin << "is typing:" << type;

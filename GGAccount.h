@@ -42,6 +42,7 @@ namespace KittySDK
 			void processMessage(QList<quint32> senders, const QDateTime &time, const QString &plain);
 			void processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data);
 			void importContact(const quint32 &uin, const QMap<QString, QString> &data);
+			void processTypingNotify(const quint32 &sender, const int &type);
 			void showDescriptionInput();
 			void setStatusAvailable();
 			void setStatusAway();

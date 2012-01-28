@@ -119,6 +119,7 @@ namespace KittySDK
 			void xmlActionReceived(const QString &xmlAction);
 			void contactImported(const quint32 &uin, const QMap<QString, QString> &data);
 			void imageReceived(const quint32 &sender, const QString &fileName, const quint32 &crc32, const QByteArray &data);
+			void typingNotifyReceived(const quint32 &sender, const int &length);
 
 		private slots:
 			void readSocket();

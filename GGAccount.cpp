@@ -27,6 +27,7 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
 	connect(m_client, SIGNAL(messageReceived(QList<quint32>,QDateTime,QString)), this, SLOT(processMessage(QList<quint32>,QDateTime,QString)));
 	connect(m_client, SIGNAL(imageReceived(quint32,QString,quint32,QByteArray)), this, SLOT(processImage(quint32,QString,quint32,QByteArray)));
 	connect(m_client, SIGNAL(contactImported(quint32,QMap<QString,QString>)), this, SLOT(importContact(quint32,QMap<QString,QString>)));
+	connect(m_client, SIGNAL(typingNotifyReceived(quint32,int)), this, SLOT(processTypingNotify(quint32,int)));
 
 	setMe(new GGContact(uid, this));
 	me()->setDisplay(protocol()->core()->profileName());
@@ -317,6 +318,15 @@ void KittySDK::GGAccount::importContact(const quint32 &uin, const QMap<QString, 
 	emit contactAdded(cnt);
 }
 
+void GGAccount::processTypingNotify(const quint32 &sender, const int &type)
+{
+	Contact *cnt = contactByUin(sender);
+	if(cnt) {
+		emit typingNotifyReceived(cnt, type > 0, type);
+	} else {
+		qWarning() << "Unknown uin" << sender << "is sending us typing notify";
+	}
+}
 
 void KittySDK::GGAccount::showDescriptionInput()
 {

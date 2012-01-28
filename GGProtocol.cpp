@@ -16,7 +16,7 @@ KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
 	m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", Icons::I_GG_AVAILABLE);
 	m_editWindow = 0;
 
-	setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts);
+	setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts | TypingNotification);
 }
 
 KittySDK::GGProtocol::~GGProtocol()
