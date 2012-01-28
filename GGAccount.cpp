@@ -208,6 +208,11 @@ void KittySDK::GGAccount::sendMessage(const Message &msg)
 	}
 }
 
+void GGAccount::sendTypingNotify(Contact *contact, bool typing, const int &length)
+{
+	m_client->sendTypingNotify(contact->uid().toUInt(), typing ? length : 0);
+}
+
 void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)
 {
 	QString uid = QString::number(uin);
@@ -242,7 +247,6 @@ void KittySDK::GGAccount::processMessage(QList<quint32> senders, const QDateTime
 	}
 	contacts.prepend(me());
 
-	qDebug() <<  contacts.count();
 	Message msg(contactByUin(senders.first()), contacts);
 	msg.setDirection(Message::Incoming);
 	msg.setBody(plain);

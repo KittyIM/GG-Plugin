@@ -107,6 +107,7 @@ namespace KittySDK
 			void connectToHost(const QString &host, const int &port = 8074);
 			void connectToHostSSL(const QString &host, const int &port = 443);
 			void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
+			void sendTypingNotify(const quint32 &recipient, const quint16 &length);
 			void sendImage(const quint32 &recipient, GGImgUpload *image);
 			void changeStatus(const quint32 &status, const QString &description);
 			void requestRoster();

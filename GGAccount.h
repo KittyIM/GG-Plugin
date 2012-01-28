@@ -35,6 +35,7 @@ namespace KittySDK
 			void changeStatus(const KittySDK::Protocol::Status &status, const QString &description);
 			QMenu *statusMenu();
 			void sendMessage(const Message &msg);
+			void sendTypingNotify(KittySDK::Contact *contact, bool typing, const int &length);
 
 		private slots:
 			void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);

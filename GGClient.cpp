@@ -210,9 +210,22 @@ void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &te
 	sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
 }
 
+void GGClient::sendTypingNotify(const quint32 &recipient, const quint16 &length)
+{
+	QByteArray data;
+
+	//length
+	data.append((char*)&length, sizeof(length));
+
+	//uin
+	data.append((char*)&recipient, sizeof(recipient));
+
+	sendPacket(KittyGG::Packets::P_TYPING_NOTIFY, data, data.size());
+}
+
 void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
 {
-	qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
+	//qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
 
 	QFile file(image->filePath + "/" + image->fileName);
 	if(file.open(QFile::ReadOnly)) {
@@ -333,7 +346,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 	switch(type) {
 		case KittyGG::Packets::P_WELCOME:
 		{
-			qDebug() << "It's P_WELCOME";
+			//qDebug() << "It's P_WELCOME";
 
 			quint32 seed;
 			str >> seed;
@@ -344,7 +357,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 		case KittyGG::Packets::P_LOGIN_OK:
 		{
-			qDebug() << "It's P_LOGIN_OK";
+			//qDebug() << "It's P_LOGIN_OK";
 
 			m_status = m_initialStatus;
 			m_description = m_initialDescription;
@@ -372,7 +385,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 		case KittyGG::Packets::P_NOTIFY_REPLY:
 		case KittyGG::Packets::P_STATUS:
 		{
-			qDebug() << "It's P_STATUS";
+			//qDebug() << "It's P_STATUS";
 
 			int left = length;
 
@@ -513,7 +526,6 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 				while(read != left) {
 					quint8 flag;
 					str >> flag;
-					//qDebug() << "flag" << flag;
 					read += sizeof(flag);
 
 					switch(flag) {
@@ -558,7 +570,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 							str >> crc_32;
 							read += sizeof(crc_32);
 
-							qDebug() << "someone requested an image" << size << crc_32;
+							//qDebug() << "someone requested an image" << size << crc_32;
 							GGImgUpload *img = imgUploadByCrc(crc_32);
 							if(img) {
 								sendImage(sender, img);
@@ -640,8 +652,6 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 				QString text;
 				if(html_length > 0) {
-					qDebug() << "using HTML";
-
 					text = QString::fromAscii(html);
 					text.replace(QRegExp("\\s{0,}font-family:'[^']*';\\s{0,}", Qt::CaseInsensitive), "");
 					text.replace(QRegExp("\\s{0,}font-size:[^pt]*pt;\\s{0,}", Qt::CaseInsensitive), "");
@@ -661,10 +671,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 					}
 
 					text.replace(imgs, "");
-
-					qDebug() << "his html" << QString(text).replace("<", "&lt;");
 				} else {
-					qDebug() << "Using plaintext";
 					text = plainToHtml(sender, QString::fromLocal8Bit(plain), QByteArray(text_attr, text_attr_length));
 				}
 
@@ -711,7 +718,7 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 
 		case KittyGG::Packets::P_TYPING_NOTIFY:
 		{
-			qDebug() << "It's P_TYPING_NOTIFY";
+			//qDebug() << "It's P_TYPING_NOTIFY";
 
 			quint16 type;
 			str >> type;
@@ -720,12 +727,6 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 			str >> uin;
 
 			emit typingNotifyReceived(uin, type);
-
-			if(type > 0) {
-				qDebug() << uin << "is typing:" << type;
-			} else {
-				qDebug() << uin << "stopped typing";
-			}
 		}
 		break;
 
@@ -867,7 +868,7 @@ void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
 	hash.addData(password().toLatin1(), password().length());
 	hash.addData((char*)&seed, sizeof(seed));
 
-	qDebug() << uin() << password();
+	//qDebug() << uin() << password();
 
 	// uin
 	tmp32 = uin();
@@ -977,7 +978,7 @@ void KittySDK::GGClient::sendChangeStatusPacket()
 void KittySDK::GGClient::sendPingPacket()
 {
 	if(isConnected()) {
-		qDebug() << "Sending P_PING";
+		//qDebug() << "Sending P_PING";
 		sendPacket(KittyGG::Packets::P_PING);
 	}
 }
@@ -1051,8 +1052,6 @@ QByteArray GGClient::htmlToPlain(const QString &html)
 			}
 
 			if(font & KittyGG::Fonts::F_IMAGE) {
-				qDebug() << "appending image";
-
 				//length
 				attr.append(0x09);
 
@@ -1062,27 +1061,19 @@ QByteArray GGClient::htmlToPlain(const QString &html)
 				quint32 size;
 				quint32 crc_32;
 
-				qDebug() << "name: " << image.name();
 				QFileInfo info(image.name());
 				GGImgUpload *img = imgUploadByFileName(info.fileName());
 				if(img) {
-					qDebug() << "not the first time";
-
 					size = img->size;
 					crc_32 = img->crc32;
 				} else {
-					qDebug() << "first time, opening file";
 					QFile file(image.name());
 					if(file.open(QFile::ReadOnly)) {
 						size = file.size();
-						qDebug() << "size" << size;
-
 						crc_32 = crc32(0, (Bytef*)file.readAll().constData(), file.size());
-						qDebug() << "crc32" << crc_32;
 
 						img = new GGImgUpload(info.fileName(), info.path(), crc_32, size);
 						m_imgUploads.append(img);
-						qDebug() << "done";
 
 						file.close();
 					}
@@ -1153,8 +1144,6 @@ QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &pl
 		}
 
 		if(font & KittyGG::Fonts::F_IMAGE) {
-			qDebug() << "Image!";
-
 			quint8 length;
 			str >> length;
 			attr_length -= sizeof(length);
@@ -1171,7 +1160,6 @@ QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &pl
 			str >> crc32;
 			attr_length -= sizeof(crc32);
 
-			qDebug() << length << type << size << crc32;
 			requestImage(sender, size, crc32);
 		} else {
 			QString style;
@@ -1185,28 +1173,20 @@ QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &pl
 
 				str >> blue;
 				attr_length -= sizeof(blue);
-
-				//qDebug() << "at pos" << pos << "there's color " << red << green << blue;
 			}
 
 			style.append(QString("color: #%1%2%3;").arg(QString::number(red, 16)).arg(QString::number(green, 16)).arg(QString::number(blue, 16)));
 
 			if(font & KittyGG::Fonts::F_BOLD) {
 				style.append("font-weight: bold;");
-
-				//qDebug() << "at pos" << pos << "there's bold";
 			}
 
 			if(font & KittyGG::Fonts::F_ITALIC) {
 				style.append("font-style: italic;");
-
-				//qDebug() << "at pos" << pos << "there's italic";
 			}
 
 			if(font & KittyGG::Fonts::F_UNDERLINE) {
 				style.append("text-decoration: underline;");
-
-				//qDebug() << "at pos" << pos << "there's underline";
 			}
 
 			QString code("<span");
