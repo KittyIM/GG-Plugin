@@ -1,15 +1,12 @@
 #include "GGClient.h"
 
+#include "KittyGG/KittyGG.h"
 #include "constants.h"
 #include "zlib/zlib.h"
 
-#include <QtCore/QCryptographicHash>
-#include <QtCore/QDateTime>
-#include <QtCore/QRegExp>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
-#include <QtCore/QUrl>
 #include <QtGui/QTextDocument>
 #include <QtGui/QTextBlock>
 #include <QtNetwork/QNetworkProxy>
@@ -77,9 +74,9 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 
 	connect(&m_pingTimer, SIGNAL(timeout()), this, SLOT(sendPingPacket()));
 
-	m_status = KittyGG::Statuses::S_UNAVAILABLE;
+	m_status = KittyGG::Status::Unavailable;
 
-	m_initialStatus = KittyGG::Statuses::S_AVAILABLE;
+	m_initialStatus = KittyGG::Status::Available;
 
 	m_pingTimer.setInterval(3 * 60 * 1000);
 	m_thread = new GGThread(this);
@@ -100,7 +97,7 @@ void KittySDK::GGClient::setStatus(const quint32 &status)
 	if(!isConnected()) {
 		m_initialStatus = status;
 
-		connectToHostSSL("ggproxy-26.gadu-gadu.pl");
+		connectToHost("ggproxy-26.gadu-gadu.pl", 443);
 	} else {
 		m_status = status;
 		sendChangeStatusPacket();
@@ -130,22 +127,36 @@ bool KittySDK::GGClient::isConnected()
 
 void KittySDK::GGClient::addContact(const quint32 &uin)
 {
-	if(!m_roster.contains(uin)) {
-		m_roster.append(uin);
+	bool contains = false;
+	foreach(const KittyGG::NotifyEntry &entry, m_roster) {
+		if(entry.uin == uin) {
+			contains = true;
+			break;
+		}
+	}
+
+	if(!contains) {
+		m_roster << KittyGG::NotifyEntry(uin);
 	}
 
 	if(isConnected()) {
-		QByteArray data;
-		data.append((char*)&uin, 4);
-		data.append(0x03);
-
-		sendPacket(KittyGG::Packets::P_NOTIFY_ADD, data, data.size());
+		KittyGG::NotifyAdd packet(uin);
+		sendPacket(packet);
 	}
 }
 
 void KittySDK::GGClient::removeContact(const quint32 &uin)
 {
-	m_roster.removeAll(uin);
+	for(int i = m_roster.size(); i >= 0; --i) {
+		if(m_roster[i].uin == uin) {
+			m_roster.removeAt(i);
+		}
+	}
+
+	if(isConnected()) {
+		KittyGG::NotifyRemove packet(uin);
+		sendPacket(packet);
+	}
 }
 
 void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
@@ -153,77 +164,28 @@ void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
 	m_host = host;
 	m_port = port;
 
-	m_socket->connectToHost(m_host, m_port);
-}
-
-void KittySDK::GGClient::connectToHostSSL(const QString &host, const int &port)
-{
-	m_host = host;
-	m_port = port;
-
-	m_socket->connectToHostEncrypted(m_host, m_port);
-}
-
-void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer)
-{
-	//qDebug() << "sending message";
-	QByteArray data;
-	quint32 tmp32;
-
-	QByteArray plain = richToPlain(text).toLocal8Bit();
-
-	// recipient
-	tmp32 = recipient;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// seq
-	tmp32 = QDateTime::currentDateTime().toTime_t();
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// msgclass
-	tmp32 = 0x0008;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// offset_plain
-	tmp32 = sizeof(quint32) * 5;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// offset_attributes
-	tmp32 = sizeof(quint32) * 5 + plain.size();
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	//html_message
-	//data.append(html.data(), html.size());
-
-	//plain_message
-	data.append(plain.data(), plain.size());
-
-	//attributes
-	if(!footer.size()) {
-		QByteArray attr = htmlToPlain(text);
-		data.append(attr.data(), attr.size());
+	if(port == 443) {
+		m_socket->connectToHostEncrypted(m_host, m_port);
+	} else {
+		m_socket->connectToHost(m_host, m_port);
 	}
+}
 
-	//footer
-	data.append(footer);
-
-	sendPacket(KittyGG::Packets::P_MSG_SEND, data, data.size());
+void KittySDK::GGClient::sendMessage(const quint32 &recipient, const QString &text)
+{
+	KittyGG::MessageSend msg;
+	msg.setHtmlBody(text);
+	msg.setUin(recipient);
+	sendPacket(msg);
 }
 
 void GGClient::sendTypingNotify(const quint32 &recipient, const quint16 &length)
 {
-	QByteArray data;
-
-	//length
-	data.append((char*)&length, sizeof(length));
-
-	//uin
-	data.append((char*)&recipient, sizeof(recipient));
-
-	sendPacket(KittyGG::Packets::P_TYPING_NOTIFY, data, data.size());
+	KittyGG::TypingNotify notify(length, recipient);
+	sendPacket(notify);
 }
 
-void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
+void GGClient::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 {
 	//qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
 
@@ -234,23 +196,12 @@ void GGClient::sendImage(const quint32 &recipient, GGImgUpload *image)
 		quint8 flag = 0x05;
 
 		while(buffer.size()) {
-			QByteArray footer;
+			KittyGG::MessageSend msg;
+			msg.setUin(recipient);
+			msg.setImageDownload(new KittyGG::ImageDownloadInfo(flag, image->size, image->crc32, buffer.mid(0, 1905), fileName));
+			sendPacket(msg);
 
-			footer.append((char*)&flag, sizeof(flag));
-			footer.append((char*)&image->size, sizeof(image->size));
-			footer.append((char*)&image->crc32, sizeof(image->crc32));
-
-			if(flag == 0x05) {
-				footer.append(fileName.data(), fileName.size());
-				footer.append((char)0x00);
-
-				flag = 0x06;
-			}
-
-			footer.append(buffer.mid(0, 1905));
-
-			sendMessage(recipient, "", footer);
-
+			flag = 0x06;
 			buffer = buffer.mid(1905);
 		}
 
@@ -275,22 +226,8 @@ void KittySDK::GGClient::changeStatus(const quint32 &status, const QString &desc
 
 void KittySDK::GGClient::requestRoster()
 {
-	QByteArray data;
-
-	//type
-	data.append((char)0x02);
-
-	//version
-	int ver = 0;
-	data.append((char*)&ver, sizeof(ver));
-
-	//format
-	data.append((char)0x02);
-
-	//unknown
-	data.append((char)0x01);
-
-	sendPacket(KittyGG::Packets::P_LIST_REQUEST, data, data.size());
+	KittyGG::ListRequest packet(KittyGG::ListRequest::Get, 0);
+	sendPacket(packet);
 }
 
 void KittySDK::GGClient::readSocket()
@@ -308,7 +245,7 @@ void KittySDK::GGClient::disconnected()
 {
 	qDebug() << "Socket::Disconnected";
 
-	m_status = KittyGG::Statuses::S_UNAVAILABLE_D;
+	m_status = KittyGG::Status::Unavailable;
 	emit statusChanged(uin(), m_status, m_description);
 
 	m_thread->stop = true;
@@ -338,113 +275,78 @@ void KittySDK::GGClient::stateChanged(QAbstractSocket::SocketState socketState)
 
 void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)
 {
-	QDataStream str(packet);
-	str.setByteOrder(QDataStream::LittleEndian);
-
-	 //qDebug() << "New packet (" << type << ", " << length << ")";
-
 	switch(type) {
-		case KittyGG::Packets::P_WELCOME:
+		case KittyGG::Welcome::Type:
 		{
-			//qDebug() << "It's P_WELCOME";
+			KittyGG::Welcome welcome = KittyGG::Welcome::fromData(packet);
 
-			quint32 seed;
-			str >> seed;
-
-			sendLoginPacket(seed);
+			KittyGG::Login login(m_uin, m_password, welcome.seed());
+			login.setInitialStatus(m_initialStatus | 0x4000);
+			login.setInitialDescription(m_initialDescription);
+			sendPacket(login);
 		}
 		break;
 
-		case KittyGG::Packets::P_LOGIN_OK:
+		case KittyGG::LoginOk::Type:
 		{
-			//qDebug() << "It's P_LOGIN_OK";
-
 			m_status = m_initialStatus;
 			m_description = m_initialDescription;
 
-			quint32 unknown;
-			str >> unknown;
-
 			m_pingTimer.start();
 
-			sendRosterPacket();
+			//send roster
+			if(m_roster.empty()) {
+				KittyGG::ListEmpty packet;
+				sendPacket(packet);
+			} else {
+				int count = m_roster.size();
+				while(count > 0) {
+					int part_count;
+
+					KittyGG::NotifyFirst *packet;
+
+					if(count > 400) {
+						part_count = 400;
+						packet = new KittyGG::NotifyFirst();
+					} else {
+						part_count = count;
+						packet = new KittyGG::NotifyLast();
+					}
+
+					packet->setContacts(m_roster.mid(m_roster.size() - count, part_count));
+
+					sendPacket(*packet);
+
+					delete packet;
+
+					count -= part_count;
+				}
+			}
 		}
 		break;
 
-		case KittyGG::Packets::P_LOGIN_FAILED:
+		case KittyGG::LoginFailed::Type:
 		{
-			qDebug() << "It's P_LOGIN_FAILED";
-
-			quint32 unknown;
-			str >> unknown;
-
 			m_socket->disconnectFromHost();
 		}
 		break;
 
-		case KittyGG::Packets::P_NOTIFY_REPLY:
-		case KittyGG::Packets::P_STATUS:
+		case KittyGG::NotifyReply::Type:
+		case KittyGG::Status::Type:
 		{
-			//qDebug() << "It's P_STATUS";
-
 			int left = length;
-
 			while(left > 0) {
-				quint32 uin;
-				str >> uin;
-				left -= sizeof(uin);
+				KittyGG::Status status = KittyGG::Status::fromData(packet);
 
-				quint32 status;
-				str >> status;
-				left -= sizeof(status);
-
-				quint32 features;
-				str >> features;
-				left -= sizeof(features);
-
-				quint32 remote_ip;
-				str >> remote_ip;
-				left -= sizeof(remote_ip);
-
-				quint16 remote_port;
-				str >>remote_port;
-				left -= sizeof(remote_port);
-
-				quint8 image_size;
-				str >> image_size;
-				left -= sizeof(image_size);
-
-				quint8 unknown;
-				str >> unknown;
-				left -= sizeof(unknown);
-
-				quint32 flags;
-				str >> flags;
-				left -= sizeof(flags);
-
-				quint32 description_size;
-				str >> description_size;
-				left -= sizeof(description_size);
-
-				char *description = new char[description_size];
-				memset(description, 0, sizeof(description));
-				if(description_size > 0) {
-					str.readRawData(description, description_size);
-					left -= description_size;
+				if(status.uin() == m_uin) {
+					m_status = status.status();
+					m_description = status.description();
 				}
 
-				if(uin == m_uin) {
-					m_status = status;
-					m_description = QString::fromAscii(description, description_size);
-				}
+				packet = packet.mid(status.size());
+				left -= status.size();
 
-				//qDebug() << uin << status << QString::fromAscii(description, description_size);
-
-				emit statusChanged(uin, status, QString::fromAscii(description, description_size));
-
-				if(description_size) {
-					delete description;
-				}
+				emit statusChanged(status.uin(), status.status(), status.description());
 			}
 
 			if(left > 0) {
@@ -453,402 +355,112 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 		}
 		break;
 
-		case KittyGG::Packets::P_XML_ACTION:
+		case KittyGG::XmlAction::Type:
 		{
-			qDebug() << "It's P_XML_ACTION";
-
-			char *data = new char[length];
-			str.readRawData(data, length);
-
-			emit xmlActionReceived(QString::fromAscii(data, length));
-
-			delete data;
+			KittyGG::XmlAction data = KittyGG::XmlAction::fromData(packet);
+			emit xmlActionReceived(data.action());
 		}
 		break;
 
-		case KittyGG::Packets::P_MSG_RECV:
+		case KittyGG::MessageRecv::Type:
 		{
-			//qDebug() << "It's P_MSG_RECV";
+			KittyGG::MessageRecv msg = KittyGG::MessageRecv::fromData(packet);
 
-			int left = length;
-			while(left > 0) {
-				int read = 0;
+			if(msg.htmlBody().size() > 0) {
+				emit messageReceived(msg.uins(), msg.time(), msg.htmlBody());
+			}
 
-				QList<quint32> senders;
-
-				quint32 sender;
-				str >> sender;
-				read += sizeof(sender);
-
-				senders.append(sender);
-
-				quint32 seq;
-				str >> seq;
-				read += sizeof(seq);
-
-				quint32 time;
-				str >> time;
-				read += sizeof(time);
-
-				quint32 msgclass;
-				str >> msgclass;
-				read += sizeof(msgclass);
-
-				quint32 offset_plain;
-				str >> offset_plain;
-				read += sizeof(offset_plain);
-
-				quint32 offset_attributes;
-				str >> offset_attributes;
-				read += sizeof(offset_attributes);
-
-				quint32 html_length = offset_plain - read;
-				char *html = 0;
-				if(html_length > 0) {
-					html = new char[html_length];
-
-					str.readRawData(html, html_length);
-					read += html_length;
+			//process image download
+			KittyGG::ImageDownloadInfo *imgDown = msg.imageDownload();
+			if(imgDown) {
+				if(imgDown->type == 0x05) {
+					KittyGG::DownloadMgr::append(new KittyGG::ImageDownload(imgDown->size, imgDown->crc32, imgDown->fileName));
 				}
 
-				quint32 plain_length = offset_attributes - offset_plain;
-				char *plain = 0;
-				if(plain_length > 0) {
-					plain = new char[plain_length];
+				KittyGG::ImageDownload *img = KittyGG::DownloadMgr::byCrc32(imgDown->crc32);
+				if(img) {
+					img->data.append(imgDown->data);
+					if((quint32)img->data.size() == img->size) {
+						emit imageReceived(msg.uin(), img->fileName, img->crc32, img->data);
 
-					str.readRawData(plain, plain_length);
-					read += plain_length;
-				}
-
-				quint16 text_attr_length;
-				char *text_attr = 0;
-
-				while(read != left) {
-					quint8 flag;
-					str >> flag;
-					read += sizeof(flag);
-
-					switch(flag) {
-						case 0x01: //conference
-						{
-							quint32 count;
-							str >> count;
-							read += sizeof(count);
-
-							for(quint32 i = 0; i < count; i++) {
-								quint32 uid;
-								str >> uid;
-								read += sizeof(uid);
-
-								senders.append(uid);
-							}
-						}
-						break;
-
-						//text attributes
-						case 0x02:
-						{
-							str >> text_attr_length;
-							read += sizeof(text_attr_length);
-
-							if(text_attr_length > 0) {
-								text_attr = new char[text_attr_length];
-								str.readRawData(text_attr, text_attr_length);
-								read += text_attr_length;
-							}
-						}
-						break;
-
-						//image request
-						case 0x04:
-						{
-							quint32 size;
-							str >> size;
-							read += sizeof(size);
-
-							quint32 crc_32;
-							str >> crc_32;
-							read += sizeof(crc_32);
-
-							//qDebug() << "someone requested an image" << size << crc_32;
-							GGImgUpload *img = imgUploadByCrc(crc_32);
-							if(img) {
-								sendImage(sender, img);
-							} else {
-								qWarning() << "Image not in upload list!" << crc_32;
-							}
-						}
-						break;
-
-						//image
-						case 0x05:
-						case 0x06:
-						{
-							quint32 size;
-							str >> size;
-							read += sizeof(size);
-
-							quint32 crc_32;
-							str >> crc_32;
-							read += sizeof(crc_32);
-
-							int data_length = left - read;
-							char *raw = 0;
-							if(data_length > 0) {
-								raw = new char[data_length];
-								str.readRawData(raw, data_length);
-								read += data_length;
-							}
-
-							QByteArray data(raw, data_length);
-
-							//filename is specified only in 1st packet
-							if(flag == 0x05) {
-								int zero = data.indexOf((char)0x00);
-								if(zero > -1) {
-									QByteArray fileName = data.mid(0, zero);
-									data = data.mid(zero + 1);
-
-									/*QDir imgDir(protocol()->core()->profilesDir() + protocol()->core()->profileName() + "/imgcache/");
-									if(imgDir.exists(fileName)) {
-										QFile imgFile(imgDir.absolutePath() + "/" + fileName);
-										if(imgFile.open(QFile::ReadOnly)) {
-											QByteArray imgData = imgFile.readAll();
-											imgFile.close();
-
-											quint32 imgCrc = crc32(0, (Bytef*)imgData.constData(), imgData.size());
-											if(crc_32 == imgCrc) {
-												qDebug() << "Image cached!";
-											} else {
-												qDebug() << "Image in cache but wrong checksum";
-											}
-										}
-									}*/
-
-									GGImgDownload *img = new GGImgDownload(fileName, crc_32, size);
-									m_imgDownloads.append(img);
-								}
-							}
-
-							delete raw;
-
-							GGImgDownload *img = imgDownloadByCrc(crc_32);
-							if(img) {
-								img->data.append(data);
-								img->received += data.size();
-								if(img->received == img->size) {
-									emit imageReceived(sender, img->fileName, img->crc32, img->data);
-
-									m_imgDownloads.removeAll(img);
-									delete img;
-								}
-							} else {
-								qWarning() << "Image not in download list!" << crc_32;
-							}
-						}
-						break;
+						KittyGG::DownloadMgr::remove(img);
+						delete img;
 					}
-				}
-
-				QString text;
-				if(html_length > 0) {
-					text = QString::fromAscii(html);
-					text.replace(QRegExp("\\s{0,}font-family:'[^']*';\\s{0,}", Qt::CaseInsensitive), "");
-					text.replace(QRegExp("\\s{0,}font-size:[^pt]*pt;\\s{0,}", Qt::CaseInsensitive), "");
-
-					QRegExp imgs("<img name=\"([0-9a-f]{8})([0-9a-f]{8})\">", Qt::CaseInsensitive);
-					int pos = 0;
-					while((pos = imgs.indexIn(text, pos)) != -1) {
-						quint32 size = imgs.cap(2).toUInt(0, 16);
-						quint32 crc32 = imgs.cap(1).toUInt(0, 16);
-
-						GGImgDownload *img = imgDownloadByCrc(crc32);
-						if(!img) {
-							requestImage(sender, size, crc32);
-						}
-
-						pos += imgs.matchedLength();
-					}
-
-					text.replace(imgs, "");
 				} else {
-					text = plainToHtml(sender, QString::fromLocal8Bit(plain), QByteArray(text_attr, text_attr_length));
+					qWarning() << "Image not in download list!" << imgDown->crc32;
 				}
+			}
 
-				QDateTime qtime = QDateTime::currentDateTime();
-				if(qtime.toTime_t() > time) {
-					qtime.setTime_t(time);
+			//respond to image request
+			KittyGG::ImageDetails *imgUpl = msg.imageUpload();
+			if(imgUpl) {
+				KittyGG::ImageUpload *img = KittyGG::UploadMgr::byCrc32(imgUpl->crc32);
+				if(img) {
+					sendImage(msg.uin(), img);
+				} else {
+					qWarning() << "Image not in upload list!" << imgUpl->crc32;
 				}
+			}
 
-				if(text.length() > 0) {
-					emit messageReceived(senders, qtime, text);
-				}
+			//request all the images!
+			foreach(KittyGG::ImageDetails *imgReq, msg.imageRequests()) {
+				KittyGG::MessageSend req;
+				req.setUin(msg.uin());
+				req.addImageRequest(new KittyGG::ImageDetails(imgReq->size, imgReq->crc32));
+				sendPacket(req);
+			}
+		}
+		break;
 
-				delete text_attr;
-				delete html;
-				delete plain;
+		case KittyGG::MessageAck::Type:
+		{
+			KittyGG::MessageAck ack = KittyGG::MessageAck::fromData(packet);
 
-				left -= read;
-				if(left > 0) {
-					qDebug() << "left" << left;
-					left = 0;
+			if(ack.status() != KittyGG::MessageAck::Delivered) {
+				qDebug() << "Message sent to" << ack.recipient() << "with seq" << ack.seq() << "has status" << ack.status();
+			}
+		}
+		break;
+
+		case KittyGG::TypingNotify::Type:
+		{
+			KittyGG::TypingNotify notify = KittyGG::TypingNotify::fromData(packet);
+
+			emit typingNotifyReceived(notify.uin(), notify.type());
+		}
+		break;
+
+		case KittyGG::UserData::Type:
+		{
+			KittyGG::UserData data = KittyGG::UserData::fromData(packet);
+
+			QMapIterator<quint32, QList<KittyGG::UserDataAttribute> > it(data.data());
+			while(it.hasNext()) {
+				it.next();
+
+				foreach(const KittyGG::UserDataAttribute &attr, it.value()) {
+					emit userDataReceived(it.key(), attr.name, attr.value);
 				}
 			}
 		}
 		break;
 
-		case KittyGG::Packets::P_MSG_SEND_ACK:
+		case KittyGG::Disconnecting::Type:
 		{
-			//qDebug() << "It's P_MSG_SEND_ACK";
-
-			quint32 status;
-			str >> status;
-
-			quint32 recipient;
-			str >> recipient;
-
-			quint32 seq;
-			str >> seq;
-
-			if(status != KittyGG::MessageAck::ACK_DELIVERED) {
-				qDebug() << "Message sent to" << recipient << "with seq" << seq << "has status" << status;
-			}
+			//qDebug() << "It's P_DISCONNECTING";
 		}
 		break;
 
-		case KittyGG::Packets::P_TYPING_NOTIFY:
+		case KittyGG::DisconnectAck::Type:
 		{
-			//qDebug() << "It's P_TYPING_NOTIFY";
-
-			quint16 type;
-			str >> type;
-
-			quint32 uin;
-			str >> uin;
-
-			emit typingNotifyReceived(uin, type);
-		}
-		break;
-
-		case KittyGG::Packets::P_USER_DATA:
-		{
-			quint32 type;
-			str >> type;
-
-			int num;
-			str >> num;
-
-			while(num > 0) {
-				quint32 uin;
-				str >> uin;
-
-				int num2;
-				str >> num2;
-
-				while(num2 > 0) {
-					quint32 name_size;
-					str >> name_size;
-
-					char *name = new char[name_size];
-					if(name_size > 0) {
-						str.readRawData(name, name_size);
-					}
-
-					quint32 type;
-					str >> type;
-
-					quint32 value_size;
-					str >> value_size;
-
-
-					char *value = new char[value_size];
-					if(value_size > 0) {
-						str.readRawData(value, value_size);
-					}
-
-					emit userDataReceived(uin, QString::fromAscii(name, name_size), QString::fromAscii(value, value_size));
-
-					delete name;
-					delete value;
-
-					num2--;
-				}
-
-				num--;
-			}
-		}
-		break;
-
-		case KittyGG::Packets::P_DISCONNECTING:
-		{
-			qDebug() << "It's P_DISCONNECTING";
-		}
-		break;
-
-		case KittyGG::Packets::P_DISCONNECT_ACK:
-		{
-			qDebug() << "It's P_DISCONNECT_ACK";
-
 			m_socket->disconnectFromHost();
 		}
 		break;
 
-		case KittyGG::Packets::P_LIST_REPLY:
+		case KittyGG::ListReply::Type:
 		{
-			qDebug() << "It's P_LIST_REPLY";
-
-			qint8 type;
-			str >> type;
-
-			int ver;
-			str >> ver;
-
-			qint8 format;
-			str >> format;
-
-			qint8 unknown;
-			str >> unknown;
-
-			int left = length - (3 * sizeof(qint8)) - sizeof(int);
-
-			quint8 *data = new quint8[left];
-			str.readRawData((char*)data, left);
-
-			QByteArray outData;
-
-			z_stream strm;
-			quint8 out[65535];
-
-			strm.zalloc = Z_NULL;
-			strm.zfree = Z_NULL;
-			strm.opaque = Z_NULL;
-			strm.avail_in = left;
-			strm.next_in = data;
-
-			int ret = inflateInit(&strm);
-			if(ret != Z_OK) {
-				qWarning() << "inflateInit failed";
-				return;
-			}
-
-			do {
-				strm.avail_out = sizeof(out);
-				strm.next_out = out;
-
-				ret = inflate(&strm, Z_NO_FLUSH);
-				if(ret == Z_MEM_ERROR) {
-					qWarning() << "inflate error";
-					break;
-				}
-
-				outData.append((const char*)out, sizeof(out) - strm.avail_out);
-			} while(ret != Z_STREAM_END);
-
-			inflateEnd(&strm);
-
-			delete data;
-
-			parseXMLRoster(outData);
+			KittyGG::ListReply reply = KittyGG::ListReply::fromData(packet);
+			parseXMLRoster(reply.reply());
 		}
 		break;
 
@@ -858,373 +470,32 @@ void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &lengt
 	}
 }
 
-void KittySDK::GGClient::sendLoginPacket(const quint32 &seed)
-{
-	QByteArray data;
-	quint8 tmp8;
-	quint32 tmp32;
-
-	QCryptographicHash hash(QCryptographicHash::Sha1);
-	hash.addData(password().toLatin1(), password().length());
-	hash.addData((char*)&seed, sizeof(seed));
-
-	//qDebug() << uin() << password();
-
-	// uin
-	tmp32 = uin();
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// language
-	data.append("pl", strlen("pl"));
-
-	// hash_type
-	tmp8 = KittyGG::HashMethods::H_SHA1;
-	data.append((char*)&tmp8, sizeof(tmp8));
-
-	// hash
-	data.append(hash.result().data(), 64);
-
-	// status
-	tmp32 = m_initialStatus | 0x4000;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// flags
-	tmp32 = KittyGG::Flags::F_UNKNOWN | KittyGG::Flags::F_SPAM;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// features
-	tmp32 = KittyGG::Features::F_STATUS80 | KittyGG::Features::F_MSG80 | KittyGG::Features::F_NEW_LOGIN | KittyGG::Features::F_DND_FFC | KittyGG::Features::F_IMAGE_DESCR |  KittyGG::Features::F_TYPING_NOTIFICATION | KittyGG::Features::F_USER_DATA;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// deprecated (local_ip, local_port, external_ip, external_port)
-	data.append(QByteArray(12, 0x00));
-
-	// image_size
-	tmp8 = 255;
-	data.append((char*)&tmp8, sizeof(tmp8));
-
-	// unknown
-	tmp8 = 0x64;
-	data.append((char*)&tmp8, sizeof(tmp8));
-
-	// version_size & version
-	tmp32 = strlen("KittyIM");
-	data.append((char*)&tmp32, sizeof(tmp32));
-	data.append("KittyIM", strlen("KittyIM"));
-
-	// description_size & description
-	tmp32 = m_initialDescription.size();
-	data.append((char*)&tmp32, sizeof(tmp32));
-	data.append(m_initialDescription.toLocal8Bit().data(), m_initialDescription.length());
-
-	sendPacket(KittyGG::Packets::P_LOGIN, data, data.size());
-}
-
-void KittySDK::GGClient::sendRosterPacket()
-{
-	if(m_roster.empty()) {
-		sendPacket(KittyGG::Packets::P_LIST_EMPTY);
-		return;
-	}
-
-	int count = m_roster.size();
-
-	while(count > 0) {
-		QByteArray data;
-		int part_count, packet_type;
-
-		if(count > 400) {
-			part_count = 400;
-			packet_type = KittyGG::Packets::P_NOTIFY_FIRST;
-		} else {
-			part_count = count;
-			packet_type = KittyGG::Packets::P_NOTIFY_LAST;
-		}
-
-		data.resize((sizeof(quint32) + sizeof(quint8)) * part_count);
-
-		for(int i = 0; i < part_count; i++) {
-			data.append((char*)&m_roster.at(i), 4);
-			data.append(0x03);
-		}
-
-		sendPacket(packet_type, data, data.size());
-
-		count -= part_count;
-	}
-}
-
 void KittySDK::GGClient::sendChangeStatusPacket()
 {
-	QByteArray data;
-	quint32 tmp32;
-
-	// status
-	tmp32 = status() | 0x4000;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// flags
-	tmp32 = 0;
-	data.append((char*)&tmp32, sizeof(tmp32));
-
-	// description_size & description
-	tmp32 = m_description.size();
-	data.append((char*)&tmp32, sizeof(tmp32));
-	data.append(m_description.toLocal8Bit().data(), m_description.length());
-
-	sendPacket(KittyGG::Packets::P_NEW_STATUS, data, data.size());
+	KittyGG::NewStatus packet(m_status | 0x4000, m_description);
+	sendPacket(packet);
 }
 
 void KittySDK::GGClient::sendPingPacket()
 {
 	if(isConnected()) {
-		//qDebug() << "Sending P_PING";
-		sendPacket(KittyGG::Packets::P_PING);
+		KittyGG::Ping ping;
+		sendPacket(ping);
 	}
 }
 
-void KittySDK::GGClient::sendPacket(const int &type, const QByteArray &data, const quint32 &size)
+void GGClient::sendPacket(const KittyGG::Packet &packet)
 {
-	QByteArray buffer;
+	QByteArray data;
+	KittyGG::DataStream str(&data);
+	str << packet.packetType();
+	str << packet.size();
+	str << packet.toData();
 
-	buffer.append((char*)&type, 4);
-	buffer.append((char*)&size, 4);
-	buffer.append(data);
-
-	qint64 res = m_socket->write(buffer);
-	if(res != buffer.size()) {
+	qint64 res = m_socket->write(data);
+	if(res != data.size()) {
 		qDebug() << "Didn't send whole packet!";
 	}
-}
-
-QByteArray GGClient::htmlToPlain(const QString &html)
-{
-	QByteArray attr;
-
-	quint16 position = 0;
-	quint8 font = 0;
-	quint8 color;
-
-	QTextDocument doc;
-	doc.setHtml(html);
-
-	for(QTextBlock block = doc.begin(); block != doc.end(); block = block.next()) {
-		for(QTextBlock::iterator it = block.begin(); !it.atEnd(); ++it) {
-			if(!it.fragment().isValid()) {
-				continue;
-			}
-
-			QTextCharFormat format = it.fragment().charFormat();
-			QTextImageFormat image = format.toImageFormat();
-
-			font = 0;
-
-			if(image.isValid()) {
-				font = KittyGG::Fonts::F_IMAGE;
-			} else {
-				font = KittyGG::Fonts::F_COLOR;
-
-				if(format.font().bold()) {
-					font |= KittyGG::Fonts::F_BOLD;
-				}
-
-				if(format.font().italic()) {
-					font |= KittyGG::Fonts::F_ITALIC;
-				}
-
-				if(format.font().underline()) {
-					font |= KittyGG::Fonts::F_UNDERLINE;
-				}
-			}
-
-			attr.append((char*)&position, sizeof(position));
-			attr.append((char*)&font, sizeof(font));
-
-			if(font & KittyGG::Fonts::F_COLOR) {
-				color = format.foreground().color().red();
-				attr.append((char*)&color, sizeof(color));
-
-				color = format.foreground().color().green();
-				attr.append((char*)&color, sizeof(color));
-
-				color = format.foreground().color().blue();
-				attr.append((char*)&color, sizeof(color));
-			}
-
-			if(font & KittyGG::Fonts::F_IMAGE) {
-				//length
-				attr.append(0x09);
-
-				//type
-				attr.append(0x01);
-
-				quint32 size;
-				quint32 crc_32;
-
-				QFileInfo info(image.name());
-				GGImgUpload *img = imgUploadByFileName(info.fileName());
-				if(img) {
-					size = img->size;
-					crc_32 = img->crc32;
-				} else {
-					QFile file(image.name());
-					if(file.open(QFile::ReadOnly)) {
-						size = file.size();
-						crc_32 = crc32(0, (Bytef*)file.readAll().constData(), file.size());
-
-						img = new GGImgUpload(info.fileName(), info.path(), crc_32, size);
-						m_imgUploads.append(img);
-
-						file.close();
-					}
-				}
-
-				attr.append((char*)&size, sizeof(quint32));
-				attr.append((char*)&crc_32, sizeof(quint32));
-			}
-
-			position += it.fragment().text().size();
-		}
-	}
-
-	if(attr.size()) {
-		quint16 size = attr.size();
-		attr.prepend((char*)&size, sizeof(quint16));
-
-		//type
-		attr.prepend(0x02);
-	}
-
-	return attr;
-}
-
-QString GGClient::richToPlain(const QString &html)
-{
-	QString plain = html;
-
-	plain.remove(QRegExp("<[^>]*>"));
-	plain.replace("&quot;", "\"");
-	plain.replace("&lt;", "<");
-	plain.replace("&gt;", ">");
-	plain.replace("&amp;", "&");
-
-	return plain;
-}
-
-QString KittySDK::GGClient::plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr)
-{
-	QDataStream str(attr);
-	str.setByteOrder(QDataStream::LittleEndian);
-
-	QString text, fragment;
-
-	bool opened = false;
-	quint16 last_pos = 0;
-	quint8 red = 0;
-	quint8 green = 0;
-	quint8 blue = 0;
-
-	int attr_length = attr.size();
-	while(attr_length > 0) {
-		quint16 pos;
-		str >> pos;
-		attr_length -= sizeof(pos);
-
-		quint8 font;
-		str >> font;
-		attr_length -= sizeof(font);
-
-		pos++;
-		fragment = plain.mid(last_pos, pos - last_pos);
-		last_pos = pos;
-
-		if(opened) {
-			text.append("</span>");
-			opened = false;
-		}
-
-		if(font & KittyGG::Fonts::F_IMAGE) {
-			quint8 length;
-			str >> length;
-			attr_length -= sizeof(length);
-
-			quint8 type;
-			str >> type;
-			attr_length -= sizeof(type);
-
-			quint32 size;
-			str >> size;
-			attr_length -= sizeof(size);
-
-			quint32 crc32;
-			str >> crc32;
-			attr_length -= sizeof(crc32);
-
-			requestImage(sender, size, crc32);
-		} else {
-			QString style;
-
-			if(font & KittyGG::Fonts::F_COLOR) {
-				str >> red;
-				attr_length -= sizeof(red);
-
-				str >> green;
-				attr_length -= sizeof(green);
-
-				str >> blue;
-				attr_length -= sizeof(blue);
-			}
-
-			style.append(QString("color: #%1%2%3;").arg(QString::number(red, 16)).arg(QString::number(green, 16)).arg(QString::number(blue, 16)));
-
-			if(font & KittyGG::Fonts::F_BOLD) {
-				style.append("font-weight: bold;");
-			}
-
-			if(font & KittyGG::Fonts::F_ITALIC) {
-				style.append("font-style: italic;");
-			}
-
-			if(font & KittyGG::Fonts::F_UNDERLINE) {
-				style.append("text-decoration: underline;");
-			}
-
-			QString code("<span");
-			if(!style.isEmpty()) {
-				code.append(QString(" style=\"%1\"").arg(style));
-			}
-
-			code.append(">");
-
-			fragment.replace("&", "&amp;");
-			fragment.replace("<", "&lt;");
-			fragment.replace(">", "&gt;");
-			fragment.replace("\"", "&quot;");
-
-			text.append(code);
-			text.append(fragment);
-			opened = true;
-		}
-	}
-
-	fragment = plain.mid(last_pos);
-	fragment.replace("&", "&amp;");
-	fragment.replace("<", "&lt;");
-	fragment.replace(">", "&gt;");
-	fragment.replace("\"", "&quot;");
-
-	text.append(fragment);
-
-	if(opened) {
-		text.append("</span>");
-	}
-
-	text.replace("\n", "<br>");
-	text.replace("\r", "");
-	text.replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
-	text.replace("  ", " &nbsp;");
-
-	return text;
 }
 
 void KittySDK::GGClient::parseXMLRoster(const QString &xml)
@@ -1291,49 +562,6 @@ void KittySDK::GGClient::parseXMLRoster(const QString &xml)
 	} else {
 		qWarning() << "Wrong format!";
 	}
-}
-
-void KittySDK::GGClient::requestImage(const quint32 &sender, const quint32 &size, const quint32 &crc32)
-{
-	QByteArray footer;
-	footer.append((char)0x04);
-	footer.append((char*)&size, sizeof(size));
-	footer.append((char*)&crc32, sizeof(crc32));
-
-	sendMessage(sender, "", footer);
-}
-
-KittySDK::GGImgDownload *KittySDK::GGClient::imgDownloadByCrc(const quint32 &crc32)
-{
-	foreach(GGImgDownload *img, m_imgDownloads) {
-		if(img->crc32 == crc32) {
-			return img;
-		}
-	}
-
-	return 0;
-}
-
-GGImgUpload *GGClient::imgUploadByCrc(const quint32 &crc32)
-{
-	foreach(GGImgUpload *img, m_imgUploads) {
-		if(img->crc32 == crc32) {
-			return img;
-		}
-	}
-
-	return 0;
-}
-
-GGImgUpload *GGClient::imgUploadByFileName(const QString &fileName)
-{
-	foreach(GGImgUpload *img, m_imgUploads) {
-		if(img->fileName == fileName) {
-			return img;
-		}
-	}
-
-	return 0;
 }
 
 

@@ -156,30 +156,30 @@ QMap<QString, QVariant> GGAccount::saveSettings()
 
 void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status, const QString &descr)
 {
-	quint32 stat = KittyGG::Statuses::S_AVAILABLE;
+	quint32 stat = KittyGG::Status::Available;
 	switch(status) {
 		case Protocol::Away:
-			stat = KittyGG::Statuses::S_BUSY;
+			stat = KittyGG::Status::Busy;
 		break;
 
 		case Protocol::FFC:
-			stat = KittyGG::Statuses::S_FFC;
+			stat = KittyGG::Status::FreeForChat;
 		break;
 
 		case Protocol::DND:
-			stat = KittyGG::Statuses::S_DND;
+			stat = KittyGG::Status::DoNotDisturb;
 		break;
 
 		case Protocol::Invisible:
-			stat = KittyGG::Statuses::S_INVISIBLE;
+			stat = KittyGG::Status::Invisible;
 		break;
 
 		case Protocol::Offline:
-			stat = KittyGG::Statuses::S_UNAVAILABLE;
+			stat = KittyGG::Status::Unavailable;
 		break;
 
 		default:
-			stat = KittyGG::Statuses::S_AVAILABLE;
+			stat = KittyGG::Status::Available;
 		break;
 	}
 
@@ -353,32 +353,32 @@ void KittySDK::GGAccount::showDescriptionInput()
 
 void KittySDK::GGAccount::setStatusAvailable()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_AVAILABLE, description());
+	m_client->changeStatus(KittyGG::Status::Available, description());
 }
 
 void KittySDK::GGAccount::setStatusAway()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_BUSY, description());
+	m_client->changeStatus(KittyGG::Status::Busy, description());
 }
 
 void KittySDK::GGAccount::setStatusFFC()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_FFC, description());
+	m_client->changeStatus(KittyGG::Status::FreeForChat, description());
 }
 
 void KittySDK::GGAccount::setStatusDND()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_DND, description());
+	m_client->changeStatus(KittyGG::Status::DoNotDisturb, description());
 }
 
 void KittySDK::GGAccount::setStatusInvisible()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_INVISIBLE, description());
+	m_client->changeStatus(KittyGG::Status::Invisible, description());
 }
 
 void KittySDK::GGAccount::setStatusUnavailable()
 {
-	m_client->changeStatus(KittyGG::Statuses::S_UNAVAILABLE, description());
+	m_client->changeStatus(KittyGG::Status::Unavailable, description());
 }
 
 void KittySDK::GGAccount::importFromServer()

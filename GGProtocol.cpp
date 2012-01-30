@@ -96,29 +96,29 @@ QWidget *KittySDK::GGProtocol::editWindow(KittySDK::Account *account)
 KittySDK::Protocol::Status KittySDK::GGProtocol::convertStatus(const quint32 &status) const
 {
 	switch(status & ~0x4000) {
-		case KittyGG::Statuses::S_AVAILABLE:
-		case KittyGG::Statuses::S_AVAILABLE_D:
-		return KittySDK::Protocol::Online;
+		case KittyGG::Status::Available:
+		case KittyGG::Status::AvailableDescr:
+			return KittySDK::Protocol::Online;
 		break;
 
-		case KittyGG::Statuses::S_BUSY:
-		case KittyGG::Statuses::S_BUSY_D:
-		return KittySDK::Protocol::Away;
+		case KittyGG::Status::Busy:
+		case KittyGG::Status::BusyDescr:
+			return KittySDK::Protocol::Away;
 		break;
 
-		case KittyGG::Statuses::S_DND:
-		case KittyGG::Statuses::S_DND_D:
-		return KittySDK::Protocol::DND;
+		case KittyGG::Status::DoNotDisturb:
+		case KittyGG::Status::DoNotDisturbDescr:
+			return KittySDK::Protocol::DND;
 		break;
 
-		case KittyGG::Statuses::S_FFC:
-		case KittyGG::Statuses::S_FFC_D:
-		return KittySDK::Protocol::FFC;
+		case KittyGG::Status::FreeForChat:
+		case KittyGG::Status::FreeForChatDescr:
+			return KittySDK::Protocol::FFC;
 		break;
 
-		case KittyGG::Statuses::S_INVISIBLE:
-		case KittyGG::Statuses::S_INVISIBLE_D:
-		return KittySDK::Protocol::Invisible;
+		case KittyGG::Status::Invisible:
+		case KittyGG::Status::InvisibleDescr:
+			return KittySDK::Protocol::Invisible;
 		break;
 	}
 

@@ -1,6 +1,9 @@
 #ifndef GGCLIENT_H
 #define GGCLIENT_H
 
+#include "KittyGG/Packets/NotifyFirst.h"
+#include "KittyGG/Managers.h"
+
 #include <QtCore/QtGlobal>
 #include <QtCore/QObject>
 #include <QtCore/QString>
@@ -8,7 +11,6 @@
 #include <QtCore/QTimer>
 #include <QtCore/QMutex>
 #include <QtNetwork/QSslSocket>
-
 
 namespace KittySDK
 {
@@ -30,37 +32,6 @@ namespace KittySDK
 
 		signals:
 			void packetReceived(quint32 type, quint32 length, QByteArray packet);
-	};
-
-	struct GGImgDownload
-	{
-			GGImgDownload(const QString &fileName, const quint32 &crc32, const quint32 &size):
-				fileName(fileName),
-				size(size),
-				received(0),
-				crc32(crc32)
-			{ }
-
-			QString fileName;
-			QByteArray data;
-			quint32 size;
-			quint32 received;
-			quint32 crc32;
-	};
-
-	struct GGImgUpload
-	{
-			GGImgUpload(const QString &fileName, const QString &filePath, const quint32 &crc32, const quint32 &size):
-				fileName(fileName),
-				filePath(filePath),
-				size(size),
-				crc32(crc32)
-			{ }
-
-			QString fileName;
-			QString filePath;
-			quint32 size;
-			quint32 crc32;
 	};
 
 	class GGClient: public QObject
@@ -105,10 +76,9 @@ namespace KittySDK
 
 		public slots:
 			void connectToHost(const QString &host, const int &port = 8074);
-			void connectToHostSSL(const QString &host, const int &port = 443);
-			void sendMessage(const quint32 &recipient, const QString &text, const QByteArray &footer = QByteArray());
+			void sendMessage(const quint32 &recipient, const QString &text);
 			void sendTypingNotify(const quint32 &recipient, const quint16 &length);
-			void sendImage(const quint32 &recipient, GGImgUpload *image);
+			void sendImage(const quint32 &recipient, KittyGG::ImageUpload *image);
 			void changeStatus(const quint32 &status, const QString &description);
 			void requestRoster();
 			void parseXMLRoster(const QString &xml);
@@ -131,18 +101,9 @@ namespace KittySDK
 			void proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator);
 			void stateChanged(QAbstractSocket::SocketState socketState);
 			void processPacket(const quint32 &type, const quint32 &length, QByteArray packet);
-			void sendLoginPacket(const quint32 &seed);
-			void sendRosterPacket();
 			void sendChangeStatusPacket();
 			void sendPingPacket();
-			void sendPacket(const int &type, const QByteArray &data = QByteArray(), const quint32 &size = 0);
-			QByteArray htmlToPlain(const QString &html);
-			QString richToPlain(const QString &html);
-			QString plainToHtml(const quint32 &sender, const QString &plain, const QByteArray &attr);
-			void requestImage(const quint32 &sender, const quint32 &size, const quint32 &crc32);
-			GGImgDownload *imgDownloadByCrc(const quint32 &crc32);
-			GGImgUpload *imgUploadByCrc(const quint32 &crc32);
-			GGImgUpload *imgUploadByFileName(const QString &fileName);
+			void sendPacket(const KittyGG::Packet &packet);
 
 		private:
 			QString m_host;
@@ -155,9 +116,7 @@ namespace KittySDK
 			QString m_initialDescription;
 			QTimer m_pingTimer;
 			QSslSocket *m_socket;
-			QList<quint32> m_roster;
-			QList<GGImgDownload*> m_imgDownloads;
-			QList<GGImgUpload*> m_imgUploads;
+			QList<KittyGG::NotifyEntry> m_roster;
 			GGThread *m_thread;
 	};
 }
