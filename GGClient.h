@@ -2,7 +2,6 @@
 #define GGCLIENT_H
 
 #include "KittyGG/Packets/NotifyFirst.h"
-#include "KittyGG/Managers.h"
 
 #include <QtCore/QtGlobal>
 #include <QtCore/QObject>
@@ -12,28 +11,14 @@
 #include <QtCore/QMutex>
 #include <QtNetwork/QSslSocket>
 
+namespace KittyGG
+{
+	struct ImageUpload;
+	class Parser;
+}
+
 namespace KittySDK
 {
-	class GGClient;
-
-	class GGThread: public QThread
-	{
-			Q_OBJECT
-
-		public:
-			GGThread(QObject *parent = 0): QThread(parent), stop(false) { }
-
-			void run();
-			void bufferAppend(const QByteArray &buf);
-
-			QMutex mutex;
-			QByteArray buffer;
-			bool stop;
-
-		signals:
-			void packetReceived(quint32 type, quint32 length, QByteArray packet);
-	};
-
 	class GGClient: public QObject
 	{
 			Q_OBJECT
@@ -117,7 +102,7 @@ namespace KittySDK
 			QTimer m_pingTimer;
 			QSslSocket *m_socket;
 			QList<KittyGG::NotifyEntry> m_roster;
-			GGThread *m_thread;
+			KittyGG::Parser *m_parser;
 	};
 }
 

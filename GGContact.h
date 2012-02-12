@@ -10,7 +10,7 @@ namespace KittySDK
 {
 	class GGContact: public Contact
 	{
-			Q_OBJECT
+		Q_OBJECT
 
 		public:
 			GGContact(const QString &uid, GGAccount *account);

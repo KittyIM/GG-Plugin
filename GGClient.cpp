@@ -1,9 +1,13 @@
 #include "GGClient.h"
 
+#include "KittyGG/DataStream.h"
+#include "KittyGG/Managers.h"
 #include "KittyGG/KittyGG.h"
+#include "KittyGG/Parser.h"
 #include "constants.h"
 #include "zlib/zlib.h"
 
+#include <QtCore/QThreadPool>
 #include <QtCore/QDebug>
 #include <QtCore/QFile>
 #include <QtCore/QDir>
@@ -17,47 +21,6 @@
 #define qWarning() qWarning() << "[GGClient]"
 
 using namespace KittySDK;
-
-void KittySDK::GGThread::run()
-{
-	forever {
-		mutex.lock();
-
-		if(buffer.size() >= (int)(sizeof(quint32) * 2)) {
-			quint32 type, length;
-
-			while(buffer.size() > 0) {
-				QDataStream str(buffer);
-				str.setByteOrder(QDataStream::LittleEndian);
-
-				str >> type >> length;
-
-				if(buffer.size() < (int)(length + sizeof(quint32) * 2)) {
-					break;
-				}
-
-				emit packetReceived(type, length, buffer.mid(sizeof(quint32) * 2, length));
-
-				buffer = buffer.mid(length + sizeof(quint32) * 2);
-			}
-		}
-
-		mutex.unlock();
-
-		if(stop) {
-			break;
-		}
-	}
-}
-
-void KittySDK::GGThread::bufferAppend(const QByteArray &buf)
-{
-	mutex.lock();
-
-	buffer.append(buf);
-
-	mutex.unlock();
-}
 
 KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 {
@@ -79,16 +42,12 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 	m_initialStatus = KittyGG::Status::Available;
 
 	m_pingTimer.setInterval(3 * 60 * 1000);
-	m_thread = new GGThread(this);
-	connect(m_thread, SIGNAL(packetReceived(quint32,quint32,QByteArray)), this, SLOT(processPacket(quint32,quint32,QByteArray)));
+	m_parser = new KittyGG::Parser();
+	connect(m_parser, SIGNAL(packetReceived(quint32,quint32,QByteArray)), SLOT(processPacket(quint32,quint32,QByteArray)));
 }
 
 KittySDK::GGClient::~GGClient()
 {
-	m_thread->stop = true;
-	m_thread->wait();
-
-	//delete m_thread;
 	delete m_socket;
 }
 
@@ -232,13 +191,13 @@ void KittySDK::GGClient::requestRoster()
 
 void KittySDK::GGClient::readSocket()
 {
-	m_thread->bufferAppend(m_socket->readAll());
+	m_parser->append(m_socket->readAll());
+	QThreadPool::globalInstance()->start(m_parser);
 }
 
 void KittySDK::GGClient::connected()
 {
 	qDebug() << "Socket::Connected";
-	m_thread->start();
 }
 
 void KittySDK::GGClient::disconnected()
@@ -248,7 +207,6 @@ void KittySDK::GGClient::disconnected()
 	m_status = KittyGG::Status::Unavailable;
 	emit statusChanged(uin(), m_status, m_description);
 
-	m_thread->stop = true;
 	m_pingTimer.stop();
 }
 

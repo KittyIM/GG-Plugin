@@ -1,4 +1,4 @@
-TARGET     = GG-plugin
+TARGET     = GG
 TEMPLATE   = lib
 QT        += network xml
 
@@ -24,7 +24,8 @@ SOURCES   += GGProtocol.cpp \
     KittyGG/Packets/Login.cpp \
     KittyGG/Packets/ListRequest.cpp \
     KittyGG/Packets/ListReply.cpp \
-    KittyGG/Message.cpp
+    KittyGG/Message.cpp \
+    KittyGG/Parser.cpp
 
 HEADERS   += GGProtocol.h \
              GGAccount.h \
@@ -73,7 +74,8 @@ HEADERS   += GGProtocol.h \
     KittyGG/Packets/Disconnecting.h \
     KittyGG/Packets/DisconnectAck.h \
     KittyGG/KittyGG.h \
-    KittyGG/Message.h
+    KittyGG/Message.h \
+    KittyGG/Parser.h
 
 FORMS     += GGEditWindow.ui
 

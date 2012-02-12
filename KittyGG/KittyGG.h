@@ -26,7 +26,4 @@
 #include "Packets/Ping.h"
 #include "Packets/Pong.h"
 
-#include "DataStream.h"
-#include "Managers.h"
-
 #endif // KITTYGG_H
