@@ -9,7 +9,7 @@ namespace KittyGG
 
 MessageRecv::MessageRecv():
 	m_seq(QDateTime::currentDateTime().toTime_t()),
-	m_time(QDateTime::currentDateTime()),
+	m_timeStamp(QDateTime::currentDateTime()),
 	m_msgClass(0x08),
 	m_imageUpload(0),
 	m_imageDownload(0)
@@ -68,7 +68,7 @@ MessageRecv MessageRecv::fromData(const QByteArray &data)
 
 	MessageRecv packet;
 	packet.setSeq(seq);
-	packet.setTime(qtime);
+	packet.setTimeStamp(qtime);
 	packet.setMsgClass(msgclass);
 	packet.setPlainBody(QString::fromLocal8Bit(plain));
 

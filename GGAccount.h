@@ -1,13 +1,21 @@
 #ifndef GGACCOUNT_H
 #define GGACCOUNT_H
 
+#include "KittyGG/Packets/NotifyFirst.h"
 #include "SDK/Account.h"
 #include "GGProtocol.h"
 
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
+#include <QtNetwork/QSslSocket>
 
 class QSignalMapper;
+
+namespace KittyGG
+{
+	struct ImageUpload;
+	class Parser;
+}
 
 namespace KittySDK
 {
@@ -26,11 +34,14 @@ namespace KittySDK
 			quint32 uin() const;
 			Protocol::Status status() const;
 			QString description() const;
+
 			Contact *newContact(const QString &uid);
 			Contact *newContact(const quint32 &uin);
 
 			Contact *contactByUin(const quint32 &uin);
 			void insertContact(const QString &uid, Contact *contact);
+
+			bool isConnected() const;
 
 			void setUseSSL(const bool &useSSL) { m_useSSL = useSSL; }
 			bool useSSL() const { return m_useSSL; }
@@ -54,19 +65,25 @@ namespace KittySDK
 
 		private slots:
 			void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
-			void processUserData(const quint32 &uin, const QString &name, const QString &data);
-			void processMessage(QList<quint32> senders, const QDateTime &time, const QString &plain);
-			void processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data);
-			void importContact(const quint32 &uin, const QMap<QString, QString> &data);
-			void processTypingNotify(const quint32 &sender, const int &type);
 			void toggleConnectingStatus();
 			void showDescriptionInput();
 			void setStatus(int status);
 			void importFromServer();
 			void importFromFile();
+			void parseXMLRoster(const QString &xml);
+			void processPacket(const quint32 &type, const quint32 &length, QByteArray packet);
+			void sendPacket(const KittyGG::Packet &packet);
+			void sendImage(const quint32 &recipient, KittyGG::ImageUpload *image);
+			void sendChangeStatusPacket();
+			void sendPingPacket();
+			void readSocket();
+			void disconnected();
+			void error(QAbstractSocket::SocketError socketError);
+			void proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator);
+			void stateChanged(QAbstractSocket::SocketState socketState);
+			void connectToHost(const QString &hostname);
 
 		private:
-			GGClient *m_client;
 			QMenu *m_statusMenu;
 			QStringList m_descriptionHistory;
 			bool m_useSSL;
@@ -82,6 +99,13 @@ namespace KittySDK
 			QAction *m_invisibleAction;
 			QAction *m_unavailableAction;
 			QAction *m_descriptionAction;
+
+			quint32 m_status;
+			QString m_description;
+			QString m_initialDescription;
+			QTimer m_pingTimer;
+			QSslSocket *m_socket;
+			KittyGG::Parser *m_parser;
 	};
 }
 

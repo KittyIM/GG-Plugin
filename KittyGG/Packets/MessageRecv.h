@@ -37,8 +37,8 @@ namespace KittyGG
 			quint32 seq() const { return m_seq; }
 			void setSeq(const quint32 &seq) { m_seq = seq; }
 
-			QDateTime time() const { return m_time; }
-			void setTime(const QDateTime &time) { m_time = time; }
+			QDateTime timeStamp() const { return m_timeStamp; }
+			void setTimeStamp(const QDateTime &time) { m_timeStamp = time; }
 
 			quint32 msgClass() const { return m_msgClass; }
 			void setMsgClass(const quint32 &msgClass) { m_msgClass = msgClass; }
@@ -64,7 +64,7 @@ namespace KittyGG
 		protected:
 			QList<quint32> m_uins;
 			quint32 m_seq;
-			QDateTime m_time;
+			QDateTime m_timeStamp;
 			quint32 m_msgClass;
 			QString m_htmlBody;
 			QString m_plainBody;

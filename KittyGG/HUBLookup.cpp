@@ -14,7 +14,7 @@ namespace KittyGG
 void HUBLookup::run()
 {
 	QNetworkAccessManager nam;
-	QNetworkReply *reply = nam.get(QNetworkRequest(QUrl("http://appmsg.gadu-gadu.pl/appsvc/appmsg_ver8.asp?fmnumber=1")));
+	QNetworkReply *reply = nam.get(QNetworkRequest(QUrl("http://appmsg.gadu-gadu.pl/appsvc/appmsg_ver10.asp?fmnumber=1")));
 
 	QEventLoop loop;
 	connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));

@@ -5,7 +5,6 @@ QT        += network xml
 SOURCES   += GGProtocol.cpp \
              GGAccount.cpp \
              GGContact.cpp \
-             GGClient.cpp \
              KittyGG/Managers.cpp \
     KittyGG/DataStream.cpp \
     KittyGG/Packets/XmlAction.cpp \
@@ -38,7 +37,6 @@ HEADERS   += GGProtocol.h \
              SDK/Account.h \
              constants.h \
              SDK/Contact.h \
-             GGClient.h \
              SDK/Message.h \
              SDK/Chat.h \
              SDK/GGConstants.h \
