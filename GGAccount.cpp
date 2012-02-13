@@ -8,6 +8,7 @@
 #include "constants.h"
 #include "GGClient.h"
 
+#include <QtCore/QSignalMapper>
 #include <QtCore/QDebug>
 #include <QtGui/QTextDocument>
 #include <QtGui/QInputDialog>
@@ -42,35 +43,43 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
 	importMenu->addAction(tr("From server"), this, SLOT(importFromServer()));
 	importMenu->addAction(tr("From file"), this, SLOT(importFromFile()));
 
+	m_statusMapper = new QSignalMapper(this);
+	connect(m_statusMapper, SIGNAL(mapped(int)), SLOT(setStatus(int)));
+
 	m_statusMenu->addSeparator();
 	m_descriptionAction = new QAction(tr("Description..."), this);
-	connect(m_descriptionAction, SIGNAL(triggered()), this, SLOT(showDescriptionInput()));
+	connect(m_descriptionAction, SIGNAL(triggered()), SLOT(showDescriptionInput()));
 	m_statusMenu->addAction(m_descriptionAction);
 
 	m_statusMenu->addSeparator();
-
 	m_availableAction = new QAction(protocol()->core()->icon(Icons::I_GG_AVAILABLE), tr("Available"), this);
-	connect(m_availableAction, SIGNAL(triggered()), this, SLOT(setStatusAvailable()));
+	m_statusMapper->setMapping(m_availableAction, Protocol::Online);
+	connect(m_availableAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_availableAction);
 
 	m_awayAction = new QAction(protocol()->core()->icon(Icons::I_GG_AWAY), tr("Be right back"), this);
-	connect(m_awayAction, SIGNAL(triggered()), this, SLOT(setStatusAway()));
+	m_statusMapper->setMapping(m_awayAction, Protocol::Away);
+	connect(m_awayAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_awayAction);
 
 	m_ffcAction = new QAction(protocol()->core()->icon(Icons::I_GG_FFC), tr("Free for chat"), this);
-	connect(m_ffcAction, SIGNAL(triggered()), this, SLOT(setStatusFFC()));
+	m_statusMapper->setMapping(m_ffcAction, Protocol::FFC);
+	connect(m_ffcAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_ffcAction);
 
 	m_dndAction = new QAction(protocol()->core()->icon(Icons::I_GG_DND), tr("Do not disturb"), this);
-	connect(m_dndAction, SIGNAL(triggered()), this, SLOT(setStatusDND()));
+	m_statusMapper->setMapping(m_dndAction, Protocol::DND);
+	connect(m_dndAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_dndAction);
 
 	m_invisibleAction = new QAction(protocol()->core()->icon(Icons::I_GG_INVISIBLE), tr("Invisible"), this);
-	connect(m_invisibleAction, SIGNAL(triggered()), this, SLOT(setStatusInvisible()));
+	m_statusMapper->setMapping(m_invisibleAction, Protocol::Invisible);
+	connect(m_invisibleAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_invisibleAction);
 
 	m_unavailableAction = new QAction(protocol()->core()->icon(Icons::I_GG_UNAVAILABLE), tr("Unavailable"), this);
-	connect(m_unavailableAction, SIGNAL(triggered()), this, SLOT(setStatusUnavailable()));
+	m_statusMapper->setMapping(m_unavailableAction, Protocol::Offline);
+	connect(m_unavailableAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_unavailableAction);
 }
 
@@ -326,7 +335,7 @@ void KittySDK::GGAccount::importContact(const quint32 &uin, const QMap<QString, 
 		cnt->setData(ContactInfos::I_HOME_STATE, data.value("Province"));
 	}
 
-	/*
+/*
   data.insert("MobilePhone", phone.firstChild().nodeValue());
   data.insert("Email", email.firstChild().nodeValue());
   data.insert("Gender", sex.firstChild().nodeValue());
@@ -377,34 +386,9 @@ void KittySDK::GGAccount::showDescriptionInput()
 	}
 }
 
-void KittySDK::GGAccount::setStatusAvailable()
+void GGAccount::setStatus(int status)
 {
-	changeStatus(Protocol::Online, description());
-}
-
-void KittySDK::GGAccount::setStatusAway()
-{
-	changeStatus(Protocol::Away, description());
-}
-
-void KittySDK::GGAccount::setStatusFFC()
-{
-	changeStatus(Protocol::FFC, description());
-}
-
-void KittySDK::GGAccount::setStatusDND()
-{
-	changeStatus(Protocol::DND, description());
-}
-
-void KittySDK::GGAccount::setStatusInvisible()
-{
-	changeStatus(Protocol::Invisible, description());
-}
-
-void KittySDK::GGAccount::setStatusUnavailable()
-{
-	changeStatus(Protocol::Offline, description());
+	changeStatus(static_cast<Protocol::Status>(status), description());
 }
 
 void KittySDK::GGAccount::importFromServer()

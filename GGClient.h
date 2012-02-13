@@ -27,8 +27,6 @@ namespace KittySDK
 		Q_PROPERTY(quint32 status READ status WRITE setStatus)
 		Q_PROPERTY(QString description READ description WRITE setDescription)
 
-		friend class GGThread;
-
 		public:
 			explicit GGClient(QObject *parent = 0);
 			~GGClient();

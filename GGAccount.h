@@ -7,6 +7,8 @@
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
 
+class QSignalMapper;
+
 namespace KittySDK
 {
 	class Protocol;
@@ -59,12 +61,7 @@ namespace KittySDK
 			void processTypingNotify(const quint32 &sender, const int &type);
 			void toggleConnectingStatus();
 			void showDescriptionInput();
-			void setStatusAvailable();
-			void setStatusAway();
-			void setStatusFFC();
-			void setStatusDND();
-			void setStatusInvisible();
-			void setStatusUnavailable();
+			void setStatus(int status);
 			void importFromServer();
 			void importFromFile();
 
@@ -77,6 +74,7 @@ namespace KittySDK
 			quint32 m_initialStatus;
 			QStringList m_serverList;
 			QTimer m_blinkTimer;
+			QSignalMapper *m_statusMapper;
 			QAction *m_availableAction;
 			QAction *m_awayAction;
 			QAction *m_ffcAction;
