@@ -4,7 +4,6 @@ QT        += network xml
 
 SOURCES   += GGProtocol.cpp \
              GGAccount.cpp \
-             GGEditWindow.cpp \
              GGContact.cpp \
              GGClient.cpp \
              KittyGG/Managers.cpp \
@@ -25,11 +24,11 @@ SOURCES   += GGProtocol.cpp \
     KittyGG/Packets/ListRequest.cpp \
     KittyGG/Packets/ListReply.cpp \
     KittyGG/Message.cpp \
-    KittyGG/Parser.cpp
+    KittyGG/Parser.cpp \
+    GGEditDialog.cpp
 
 HEADERS   += GGProtocol.h \
              GGAccount.h \
-             GGEditWindow.h \
              SDK/SettingPage.h \
              SDK/Protocol.h \
              SDK/PluginCore.h \
@@ -75,9 +74,11 @@ HEADERS   += GGProtocol.h \
     KittyGG/Packets/DisconnectAck.h \
     KittyGG/KittyGG.h \
     KittyGG/Message.h \
-    KittyGG/Parser.h
+    KittyGG/Parser.h \
+    GGEditDialog.h
 
-FORMS     += GGEditWindow.ui
+FORMS     += \
+    GGEditDialog.ui
 
 RESOURCES += res.qrc
 

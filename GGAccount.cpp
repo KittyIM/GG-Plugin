@@ -136,6 +136,11 @@ void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 {
 	m_client->setAccount(uin(), password());
 
+	m_useSSL = settings.value("useSSL", true).toBool();
+	m_friendsOnly = settings.value("statusFriendsOnly", false).toBool();
+	m_initialStatus = settings.value("initialStatus", 0).toUInt();
+	m_serverList = settings.value("serverList").toStringList();
+
 	int count = settings.value("descriptionCount").toInt();
 	for(int i = 0; i < count; i++) {
 		m_descriptionHistory.append(settings.value(QString("description%1").arg(i)).toString());
@@ -145,6 +150,11 @@ void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 QMap<QString, QVariant> GGAccount::saveSettings()
 {
 	QMap<QString, QVariant> settings;
+
+	settings.insert("userSSL", m_useSSL);
+	settings.insert("statusFriendsOnly", m_friendsOnly);
+	settings.insert("initialStatus", m_initialStatus);
+	settings.insert("serverList", m_serverList);
 
 	settings.insert("descriptionCount", m_descriptionHistory.count());
 	for(int i = 0; i < m_descriptionHistory.count(); i++) {

@@ -6,7 +6,7 @@
 namespace KittySDK
 {
 	class Account;
-	class GGEditWindow;
+	class GGEditDialog;
 
 	class GGProtocol: public Protocol
 	{
@@ -20,7 +20,7 @@ namespace KittySDK
 
 			QString statusIcon(KittySDK::Protocol::Status status);
 			Account *newAccount(const QString &uid);
-			QWidget *editWindow(Account *account = 0);
+			QDialog *editDialog(Account *account = 0);
 
 			Status convertStatus(const quint32 &status) const;
 
@@ -28,7 +28,7 @@ namespace KittySDK
 			void execAction(const QString &name, const QMap<QString, QVariant> &args);
 
 		private:
-			GGEditWindow *m_editWindow;
+			GGEditDialog *m_editWindow;
 	};
 }
 #endif // GGPROTOCOL_H

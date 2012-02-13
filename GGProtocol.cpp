@@ -2,16 +2,16 @@
 
 #include "SDK/GGConstants.h"
 #include "SDK/constants.h"
-#include "GGEditWindow.h"
+#include "GGEditDialog.h"
 #include "GGAccount.h"
 #include "constants.h"
 
 #define qDebug() qDebug() << "[GGProtocol]"
 #define qWarning() qWarning() << "[GGProtocol]"
 
-using namespace KittySDK;
-
-KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
+namespace KittySDK
+{
+GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
 {
 	m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", Icons::I_GG_AVAILABLE);
 	m_editWindow = 0;
@@ -19,14 +19,14 @@ KittySDK::GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
 	setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts | TypingNotification);
 }
 
-KittySDK::GGProtocol::~GGProtocol()
+GGProtocol::~GGProtocol()
 {
 	if(m_editWindow) {
 		delete m_editWindow;
 	}
 }
 
-void KittySDK::GGProtocol::init()
+void GGProtocol::init()
 {
 	qDebug() << "Init";
 	core()->addIcon(Icons::I_GG_AVAILABLE, QPixmap(":/glyphs/available.png"));
@@ -37,17 +37,17 @@ void KittySDK::GGProtocol::init()
 	core()->addIcon(Icons::I_GG_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
 }
 
-void KittySDK::GGProtocol::load()
+void GGProtocol::load()
 {
 
 }
 
-void KittySDK::GGProtocol::unload()
+void GGProtocol::unload()
 {
 
 }
 
-QString KittySDK::GGProtocol::statusIcon(KittySDK::Protocol::Status status)
+QString GGProtocol::statusIcon(Protocol::Status status)
 {
 	switch(status) {
 		case Online:
@@ -77,57 +77,58 @@ QString KittySDK::GGProtocol::statusIcon(KittySDK::Protocol::Status status)
 	}
 }
 
-KittySDK::Account *KittySDK::GGProtocol::newAccount(const QString &uid)
+Account *GGProtocol::newAccount(const QString &uid)
 {
-	return new KittySDK::GGAccount(uid, this);
+	return new GGAccount(uid, this);
 }
 
-QWidget *KittySDK::GGProtocol::editWindow(KittySDK::Account *account)
+QDialog *GGProtocol::editDialog(Account *account)
 {
 	if(!m_editWindow) {
-		m_editWindow = new KittySDK::GGEditWindow(this);
+		m_editWindow = new GGEditDialog(this);
 	}
 
-	m_editWindow->setup(account);
+	m_editWindow->setup(dynamic_cast<GGAccount*>(account));
 
 	return m_editWindow;
 }
 
-KittySDK::Protocol::Status KittySDK::GGProtocol::convertStatus(const quint32 &status) const
+Protocol::Status GGProtocol::convertStatus(const quint32 &status) const
 {
 	switch(status & ~0x4000) {
 		case KittyGG::Status::Available:
 		case KittyGG::Status::AvailableDescr:
-			return KittySDK::Protocol::Online;
+			return Protocol::Online;
 		break;
 
 		case KittyGG::Status::Busy:
 		case KittyGG::Status::BusyDescr:
-			return KittySDK::Protocol::Away;
+			return Protocol::Away;
 		break;
 
 		case KittyGG::Status::DoNotDisturb:
 		case KittyGG::Status::DoNotDisturbDescr:
-			return KittySDK::Protocol::DND;
+			return Protocol::DND;
 		break;
 
 		case KittyGG::Status::FreeForChat:
 		case KittyGG::Status::FreeForChatDescr:
-			return KittySDK::Protocol::FFC;
+			return Protocol::FFC;
 		break;
 
 		case KittyGG::Status::Invisible:
 		case KittyGG::Status::InvisibleDescr:
-			return KittySDK::Protocol::Invisible;
+			return Protocol::Invisible;
 		break;
 	}
 
-	return KittySDK::Protocol::Offline;
+	return Protocol::Offline;
 }
 
-void KittySDK::GGProtocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
+void GGProtocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
 {
 	qDebug() << name << args;
 }
 
 KITTY_PLUGIN(GGProtocol)
+}

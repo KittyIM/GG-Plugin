@@ -14,7 +14,7 @@ namespace KittySDK
 
 	class GGAccount: public Account
 	{
-			Q_OBJECT
+		Q_OBJECT
 
 		public:
 			GGAccount(const QString &uid, GGProtocol *parent);
@@ -28,6 +28,18 @@ namespace KittySDK
 
 			Contact *contactByUin(const quint32 &uin);
 			void insertContact(const QString &uid, Contact *contact);
+
+			void setUseSSL(const bool &useSSL) { m_useSSL = useSSL; }
+			bool useSSL() const { return m_useSSL; }
+
+			void setFriendsOnly(const bool &friendsOnly) { m_friendsOnly = friendsOnly; }
+			bool friendsOnly() const { return m_friendsOnly; }
+
+			void setInitialStatus(const quint32 &initialStatus) { m_initialStatus = initialStatus; }
+			quint32 initialStatus() const { return m_initialStatus; }
+
+			void setServerList(const QStringList &serverList) { m_serverList = serverList; }
+			QStringList serverList() const { return m_serverList; }
 
 		public slots:
 			void loadSettings(const QMap<QString, QVariant> &settings);
@@ -58,6 +70,10 @@ namespace KittySDK
 			GGClient *m_client;
 			QMenu *m_statusMenu;
 			QStringList m_descriptionHistory;
+			bool m_useSSL;
+			bool m_friendsOnly;
+			quint32 m_initialStatus;
+			QStringList m_serverList;
 			QAction *m_availableAction;
 			QAction *m_awayAction;
 			QAction *m_ffcAction;

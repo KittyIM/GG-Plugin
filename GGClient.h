@@ -21,15 +21,15 @@ namespace KittySDK
 {
 	class GGClient: public QObject
 	{
-			Q_OBJECT
-			Q_PROPERTY(QString host READ host WRITE setHost)
-			Q_PROPERTY(int port READ port WRITE setPort)
-			Q_PROPERTY(quint32 uin READ uin WRITE setUin)
-			Q_PROPERTY(QString password READ password WRITE setPassword)
-			Q_PROPERTY(quint32 status READ status WRITE setStatus)
-			Q_PROPERTY(QString description READ description WRITE setDescription)
+		Q_OBJECT
+		Q_PROPERTY(QString host READ host WRITE setHost)
+		Q_PROPERTY(int port READ port WRITE setPort)
+		Q_PROPERTY(quint32 uin READ uin WRITE setUin)
+		Q_PROPERTY(QString password READ password WRITE setPassword)
+		Q_PROPERTY(quint32 status READ status WRITE setStatus)
+		Q_PROPERTY(QString description READ description WRITE setDescription)
 
-			friend class GGThread;
+		friend class GGThread;
 
 		public:
 			explicit GGClient(QObject *parent = 0);
