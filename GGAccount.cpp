@@ -32,6 +32,8 @@ KittySDK::GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(
 	setMe(new GGContact(uid, this));
 	me()->setDisplay(protocol()->core()->profileName());
 
+	connect(&m_blinkTimer, SIGNAL(timeout()), SLOT(toggleConnectingStatus()));
+
 	m_statusMenu = new QMenu();
 
 	QMenu *contactsMenu = m_statusMenu->addMenu(tr("Contacts"));
@@ -194,6 +196,10 @@ void KittySDK::GGAccount::changeStatus(const KittySDK::Protocol::Status &status,
 	}
 
 	if((stat != m_client->status()) || (descr != this->description())) {
+		if(!m_client->isConnected()) {
+			m_blinkTimer.start(1000);
+		}
+
 		m_client->changeStatus(stat, descr);
 	}
 }
@@ -229,6 +235,7 @@ void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 
 
 	if(uid == this->uid()) {
 		if(GGProtocol *ggproto = dynamic_cast<KittySDK::GGProtocol*>(protocol())) {
+			m_blinkTimer.stop();
 			emit statusChanged(ggproto->convertStatus(status), description);
 		}
 	}
@@ -342,6 +349,17 @@ void GGAccount::processTypingNotify(const quint32 &sender, const int &type)
 	}
 }
 
+void GGAccount::toggleConnectingStatus()
+{
+	if(m_blinkTimer.property("online").toBool()) {
+		emit statusChanged((Protocol::Status)-1, "");
+		m_blinkTimer.setProperty("online", false);
+	} else {
+		emit statusChanged(Protocol::Online, "");
+		m_blinkTimer.setProperty("online", true);
+	}
+}
+
 void KittySDK::GGAccount::showDescriptionInput()
 {
 	QInputDialog dialog;
@@ -363,32 +381,32 @@ void KittySDK::GGAccount::showDescriptionInput()
 
 void KittySDK::GGAccount::setStatusAvailable()
 {
-	m_client->changeStatus(KittyGG::Status::Available, description());
+	changeStatus(Protocol::Online, description());
 }
 
 void KittySDK::GGAccount::setStatusAway()
 {
-	m_client->changeStatus(KittyGG::Status::Busy, description());
+	changeStatus(Protocol::Away, description());
 }
 
 void KittySDK::GGAccount::setStatusFFC()
 {
-	m_client->changeStatus(KittyGG::Status::FreeForChat, description());
+	changeStatus(Protocol::FFC, description());
 }
 
 void KittySDK::GGAccount::setStatusDND()
 {
-	m_client->changeStatus(KittyGG::Status::DoNotDisturb, description());
+	changeStatus(Protocol::DND, description());
 }
 
 void KittySDK::GGAccount::setStatusInvisible()
 {
-	m_client->changeStatus(KittyGG::Status::Invisible, description());
+	changeStatus(Protocol::Invisible, description());
 }
 
 void KittySDK::GGAccount::setStatusUnavailable()
 {
-	m_client->changeStatus(KittyGG::Status::Unavailable, description());
+	changeStatus(Protocol::Offline, description());
 }
 
 void KittySDK::GGAccount::importFromServer()

@@ -5,6 +5,7 @@
 #include "GGProtocol.h"
 
 #include <QtCore/QStringList>
+#include <QtCore/QTimer>
 
 namespace KittySDK
 {
@@ -56,6 +57,7 @@ namespace KittySDK
 			void processImage(const quint32 &sender, const QString &imgName, const quint32 &crc32, const QByteArray &data);
 			void importContact(const quint32 &uin, const QMap<QString, QString> &data);
 			void processTypingNotify(const quint32 &sender, const int &type);
+			void toggleConnectingStatus();
 			void showDescriptionInput();
 			void setStatusAvailable();
 			void setStatusAway();
@@ -74,6 +76,7 @@ namespace KittySDK
 			bool m_friendsOnly;
 			quint32 m_initialStatus;
 			QStringList m_serverList;
+			QTimer m_blinkTimer;
 			QAction *m_availableAction;
 			QAction *m_awayAction;
 			QAction *m_ffcAction;

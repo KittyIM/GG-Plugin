@@ -213,12 +213,22 @@ void KittySDK::GGClient::disconnected()
 void KittySDK::GGClient::error(QAbstractSocket::SocketError socketError)
 {
 	qDebug() << "Socket::error(" << socketError << ")" << m_socket->errorString();
+
+	m_status = KittyGG::Status::Unavailable;
+	emit statusChanged(uin(), m_status, m_description);
+
+	m_pingTimer.stop();
 }
 
 void KittySDK::GGClient::hostFound()
 {
 	qDebug() << "Socket::hostNotFound";
 	qDebug() << m_socket->errorString();
+
+	m_status = KittyGG::Status::Unavailable;
+	emit statusChanged(uin(), m_status, m_description);
+
+	m_pingTimer.stop();
 }
 
 void KittySDK::GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)

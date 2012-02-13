@@ -51,28 +51,31 @@ QString GGProtocol::statusIcon(Protocol::Status status)
 {
 	switch(status) {
 		case Online:
-		return Icons::I_GG_AVAILABLE;
+			return Icons::I_GG_AVAILABLE;
 		break;
 
 		case Away:
-		return Icons::I_GG_AWAY;
+			return Icons::I_GG_AWAY;
 		break;
 
 		case FFC:
-		return Icons::I_GG_FFC;
+			return Icons::I_GG_FFC;
 		break;
 
 		case DND:
-		return Icons::I_GG_DND;
+			return Icons::I_GG_DND;
 		break;
 
 		case Invisible:
-		return Icons::I_GG_INVISIBLE;
+			return Icons::I_GG_INVISIBLE;
 		break;
 
 		case Offline:
+			return Icons::I_GG_UNAVAILABLE;
+		break;
+
 		default:
-		return Icons::I_GG_UNAVAILABLE;
+			return Icons::I_BLANK;
 		break;
 	}
 }
