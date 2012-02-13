@@ -141,7 +141,7 @@ void KittySDK::GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 	m_useSSL = settings.value("useSSL", true).toBool();
 	m_friendsOnly = settings.value("statusFriendsOnly", false).toBool();
 	m_initialStatus = settings.value("initialStatus", 0).toUInt();
-	m_serverList = settings.value("serverList").toStringList();
+	m_serverList = settings.value("serverList", QStringList() << "91.214.237.2"  << "91.214.237.3" << "91.214.237.4" << "91.214.237.5" << "91.214.237.6" << "91.214.237.7" << "91.214.237.8" << "91.214.237.9" << "91.214.237.10" << "91.214.237.11" << "91.214.237.12" << "91.214.237.13" << "91.214.237.14" << "91.214.237.15" << "91.214.237.16" << "91.214.237.17" << "91.214.237.18" << "91.214.237.19" << "91.214.237.20" << "91.214.237.21" << "91.214.237.22" << "91.214.237.23" << "91.214.237.24" << "91.214.237.25" << "91.214.237.26" << "91.214.237.27").toStringList();
 
 	int count = settings.value("descriptionCount").toInt();
 	for(int i = 0; i < count; i++) {
@@ -242,8 +242,6 @@ void KittySDK::GGAccount::changeContactStatus(const quint32 &uin, const quint32 
 
 	if(contacts().contains(uid)) {
 		dynamic_cast<GGContact*>(contacts().value(uid))->changeStatus(status, description);
-	} else {
-		qWarning() << "Contact not on list" << uid;
 	}
 }
 

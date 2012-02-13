@@ -1,6 +1,7 @@
 #include "GGClient.h"
 
 #include "KittyGG/DataStream.h"
+#include "KittyGG/HUBLookup.h"
 #include "KittyGG/Managers.h"
 #include "KittyGG/KittyGG.h"
 #include "KittyGG/Parser.h"
@@ -28,10 +29,8 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 	m_socket->setProxy(QNetworkProxy::applicationProxy());
 
 	connect(m_socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
-	connect(m_socket, SIGNAL(connected()), this, SLOT(connected()));
 	connect(m_socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
 	connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
-	connect(m_socket, SIGNAL(hostFound()), this, SLOT(hostFound()));
 	connect(m_socket, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), this, SLOT(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)));
 	connect(m_socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(stateChanged(QAbstractSocket::SocketState)));
 
@@ -48,6 +47,7 @@ KittySDK::GGClient::GGClient(QObject *parent): QObject(parent)
 
 KittySDK::GGClient::~GGClient()
 {
+	QThreadPool::globalInstance()->waitForDone();
 	delete m_socket;
 }
 
@@ -56,7 +56,10 @@ void KittySDK::GGClient::setStatus(const quint32 &status)
 	if(!isConnected()) {
 		m_initialStatus = status;
 
-		connectToHost("ggproxy-26.gadu-gadu.pl", 443);
+		//let's look for a server
+		KittyGG::HUBLookup *lookup = new KittyGG::HUBLookup();
+		connect(lookup, SIGNAL(serverFound(QString)), SLOT(connectToHost(QString)));
+		QThreadPool::globalInstance()->start(lookup);
 	} else {
 		m_status = status;
 		sendChangeStatusPacket();
@@ -115,18 +118,6 @@ void KittySDK::GGClient::removeContact(const quint32 &uin)
 	if(isConnected()) {
 		KittyGG::NotifyRemove packet(uin);
 		sendPacket(packet);
-	}
-}
-
-void KittySDK::GGClient::connectToHost(const QString &host, const int &port)
-{
-	m_host = host;
-	m_port = port;
-
-	if(port == 443) {
-		m_socket->connectToHostEncrypted(m_host, m_port);
-	} else {
-		m_socket->connectToHost(m_host, m_port);
 	}
 }
 
@@ -195,11 +186,6 @@ void KittySDK::GGClient::readSocket()
 	QThreadPool::globalInstance()->start(m_parser);
 }
 
-void KittySDK::GGClient::connected()
-{
-	qDebug() << "Socket::Connected";
-}
-
 void KittySDK::GGClient::disconnected()
 {
 	qDebug() << "Socket::Disconnected";
@@ -220,17 +206,6 @@ void KittySDK::GGClient::error(QAbstractSocket::SocketError socketError)
 	m_pingTimer.stop();
 }
 
-void KittySDK::GGClient::hostFound()
-{
-	qDebug() << "Socket::hostNotFound";
-	qDebug() << m_socket->errorString();
-
-	m_status = KittyGG::Status::Unavailable;
-	emit statusChanged(uin(), m_status, m_description);
-
-	m_pingTimer.stop();
-}
-
 void KittySDK::GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
 {
 	qDebug() << "Socket::proxyAuthReq";
@@ -239,6 +214,16 @@ void KittySDK::GGClient::proxyAuthenticationRequired(const QNetworkProxy &proxy,
 void KittySDK::GGClient::stateChanged(QAbstractSocket::SocketState socketState)
 {
 	qDebug() << "Socket::stateChanged(" << socketState << ")";
+}
+
+void GGClient::connectToHost(const QString &hostname)
+{
+	if(!hostname.isEmpty()) {
+		//m_socket->connectToHostEncrypted(hostname, 443);
+		m_socket->connectToHost(hostname, 8074);
+	} else {
+		//TODO: iterate over server list
+	}
 }
 
 void KittySDK::GGClient::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)

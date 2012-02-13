@@ -84,8 +84,6 @@ void GGEditDialog::setup(GGAccount *account)
 				m_ui->startupComboBox->setCurrentIndex(5);
 			break;
 		}
-
-		qDebug() << m_account->useSSL() << m_account->friendsOnly() << m_account->initialStatus() << m_account->serverList();
 	}
 }
 

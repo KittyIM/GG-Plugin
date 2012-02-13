@@ -5,9 +5,7 @@
 namespace KittyGG
 {
 
-Parser::Parser():
-	QObject(),
-	QRunnable()
+Parser::Parser()
 {
 	setAutoDelete(false);
 }

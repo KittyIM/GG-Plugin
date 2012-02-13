@@ -25,7 +25,8 @@ SOURCES   += GGProtocol.cpp \
     KittyGG/Packets/ListReply.cpp \
     KittyGG/Message.cpp \
     KittyGG/Parser.cpp \
-    GGEditDialog.cpp
+    GGEditDialog.cpp \
+    KittyGG/HUBLookup.cpp
 
 HEADERS   += GGProtocol.h \
              GGAccount.h \
@@ -75,7 +76,8 @@ HEADERS   += GGProtocol.h \
     KittyGG/KittyGG.h \
     KittyGG/Message.h \
     KittyGG/Parser.h \
-    GGEditDialog.h
+    GGEditDialog.h \
+    KittyGG/HUBLookup.h
 
 FORMS     += \
     GGEditDialog.ui
