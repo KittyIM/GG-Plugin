@@ -1,7 +1,8 @@
 #include "GGProtocol.h"
 
-#include "SDK/GGConstants.h"
-#include "SDK/constants.h"
+#include <SDKConstants.h>
+#include <GGConstants.h>
+
 #include "GGEditDialog.h"
 #include "GGAccount.h"
 #include "constants.h"
@@ -9,129 +10,130 @@
 #define qDebug() qDebug() << "[GGProtocol]"
 #define qWarning() qWarning() << "[GGProtocol]"
 
-namespace KittySDK
+namespace GG
 {
-GGProtocol::GGProtocol(PluginCore *core): Protocol(core)
+
+Protocol::Protocol(KittySDK::IPluginCore *core): KittySDK::IProtocol(core)
 {
-	m_info = new ProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", Icons::I_GG_AVAILABLE);
+	m_info = new KittySDK::IProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", KittySDK::Icons::I_GG_AVAILABLE);
 	m_editWindow = 0;
 
 	setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts | TypingNotification);
 }
 
-GGProtocol::~GGProtocol()
+Protocol::~Protocol()
 {
 	if(m_editWindow) {
 		delete m_editWindow;
 	}
 }
 
-void GGProtocol::init()
+void Protocol::init()
 {
 	qDebug() << "Init";
-	core()->addIcon(Icons::I_GG_AVAILABLE, QPixmap(":/glyphs/available.png"));
-	core()->addIcon(Icons::I_GG_AWAY, QPixmap(":/glyphs/away.png"));
-	core()->addIcon(Icons::I_GG_DND, QPixmap(":/glyphs/dnd.png"));
-	core()->addIcon(Icons::I_GG_FFC, QPixmap(":/glyphs/ffc.png"));
-	core()->addIcon(Icons::I_GG_INVISIBLE, QPixmap(":/glyphs/invisible.png"));
-	core()->addIcon(Icons::I_GG_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_AVAILABLE, QPixmap(":/glyphs/available.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_AWAY, QPixmap(":/glyphs/away.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_DND, QPixmap(":/glyphs/dnd.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_FFC, QPixmap(":/glyphs/ffc.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_INVISIBLE, QPixmap(":/glyphs/invisible.png"));
+	core()->addIcon(KittySDK::Icons::I_GG_UNAVAILABLE, QPixmap(":/glyphs/unavailable.png"));
 }
 
-void GGProtocol::load()
+void Protocol::load()
 {
 
 }
 
-void GGProtocol::unload()
+void Protocol::unload()
 {
 
 }
 
-QString GGProtocol::statusIcon(Protocol::Status status)
+QString Protocol::statusIcon(KittySDK::IProtocol::Status status)
 {
 	switch(status) {
 		case Online:
-			return Icons::I_GG_AVAILABLE;
+			return KittySDK::Icons::I_GG_AVAILABLE;
 		break;
 
 		case Away:
-			return Icons::I_GG_AWAY;
+			return KittySDK::Icons::I_GG_AWAY;
 		break;
 
 		case FFC:
-			return Icons::I_GG_FFC;
+			return KittySDK::Icons::I_GG_FFC;
 		break;
 
 		case DND:
-			return Icons::I_GG_DND;
+			return KittySDK::Icons::I_GG_DND;
 		break;
 
 		case Invisible:
-			return Icons::I_GG_INVISIBLE;
+			return KittySDK::Icons::I_GG_INVISIBLE;
 		break;
 
 		case Offline:
-			return Icons::I_GG_UNAVAILABLE;
+			return KittySDK::Icons::I_GG_UNAVAILABLE;
 		break;
 
 		default:
-			return Icons::I_BLANK;
+			return KittySDK::Icons::I_BLANK;
 		break;
 	}
 }
 
-Account *GGProtocol::newAccount(const QString &uid)
+KittySDK::IAccount *Protocol::newAccount(const QString &uid)
 {
-	return new GGAccount(uid, this);
+	return new Account(uid, this);
 }
 
-QDialog *GGProtocol::editDialog(Account *account)
+QDialog *Protocol::editDialog(KittySDK::IAccount *account)
 {
 	if(!m_editWindow) {
-		m_editWindow = new GGEditDialog(this);
+		m_editWindow = new EditDialog(this);
 	}
 
-	m_editWindow->setup(dynamic_cast<GGAccount*>(account));
+	m_editWindow->setup(dynamic_cast<Account*>(account));
 
 	return m_editWindow;
 }
 
-Protocol::Status GGProtocol::convertStatus(const quint32 &status) const
+KittySDK::IProtocol::Status Protocol::convertStatus(const quint32 &status) const
 {
 	switch(status & ~0x4000) {
 		case KittyGG::Status::Available:
 		case KittyGG::Status::AvailableDescr:
-			return Protocol::Online;
+			return KittySDK::IProtocol::Online;
 		break;
 
 		case KittyGG::Status::Busy:
 		case KittyGG::Status::BusyDescr:
-			return Protocol::Away;
+			return KittySDK::IProtocol::Away;
 		break;
 
 		case KittyGG::Status::DoNotDisturb:
 		case KittyGG::Status::DoNotDisturbDescr:
-			return Protocol::DND;
+			return KittySDK::IProtocol::DND;
 		break;
 
 		case KittyGG::Status::FreeForChat:
 		case KittyGG::Status::FreeForChatDescr:
-			return Protocol::FFC;
+			return KittySDK::IProtocol::FFC;
 		break;
 
 		case KittyGG::Status::Invisible:
 		case KittyGG::Status::InvisibleDescr:
-			return Protocol::Invisible;
+			return KittySDK::IProtocol::Invisible;
 		break;
 	}
 
-	return Protocol::Offline;
+	return KittySDK::IProtocol::Offline;
 }
 
-void GGProtocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
+void Protocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
 {
 	qDebug() << name << args;
 }
 
-KITTY_PLUGIN(GGProtocol)
+KITTY_PLUGIN(Protocol)
 }

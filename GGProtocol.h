@@ -1,26 +1,25 @@
 #ifndef GGPROTOCOL_H
 #define GGPROTOCOL_H
 
-#include "SDK/Protocol.h"
+#include <IProtocol.h>
 
-namespace KittySDK
+namespace GG
 {
-	class Account;
-	class GGEditDialog;
+	class EditDialog;
 
-	class GGProtocol: public Protocol
+	class Protocol: public KittySDK::IProtocol
 	{
 		public:
-			GGProtocol(PluginCore *core);
-			~GGProtocol();
+			Protocol(KittySDK::IPluginCore *core);
+			~Protocol();
 
 			void init();
 			void load();
 			void unload();
 
-			QString statusIcon(KittySDK::Protocol::Status status);
-			Account *newAccount(const QString &uid);
-			QDialog *editDialog(Account *account = 0);
+			QString statusIcon(KittySDK::IProtocol::Status status);
+			KittySDK::IAccount *newAccount(const QString &uid);
+			QDialog *editDialog(KittySDK::IAccount *account = 0);
 
 			Status convertStatus(const quint32 &status) const;
 
@@ -28,7 +27,8 @@ namespace KittySDK
 			void execAction(const QString &name, const QMap<QString, QVariant> &args);
 
 		private:
-			GGEditDialog *m_editWindow;
+			EditDialog *m_editWindow;
 	};
 }
+
 #endif // GGPROTOCOL_H

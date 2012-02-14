@@ -1,7 +1,7 @@
 #include "GGContact.h"
 
-#include "SDK/SoundsConstants.h"
-#include "SDK/constants.h"
+#include <SoundsConstants.h>
+#include <SDKConstants.h>
 
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDate>
@@ -12,25 +12,26 @@
 #define qDebug() qDebug() << "[GGContact]"
 #define qWarning() qWarning() << "[GGContact]"
 
-using namespace KittySDK;
+namespace GG
+{
 
-KittySDK::GGContact::GGContact(const QString &uid, KittySDK::GGAccount *account): KittySDK::Contact(uid, account)
+Contact::Contact(const QString &uid, Account *account): KittySDK::IContact(uid, account)
 {
 	connect(&m_netManager, SIGNAL(finished(QNetworkReply*)), this, SLOT(processReply(QNetworkReply*)));
 }
 
-KittySDK::GGContact::~GGContact()
+Contact::~Contact()
 {
 
 }
 
-void KittySDK::GGContact::changeStatus(const quint32 &status, const QString &description)
+void Contact::changeStatus(const quint32 &status, const QString &description)
 {
-	KittySDK::Protocol::Status status_conv = dynamic_cast<KittySDK::GGProtocol*>(m_account->protocol())->convertStatus(status);
+	KittySDK::IProtocol::Status status_conv = dynamic_cast<Protocol*>(m_account->protocol())->convertStatus(status);
 
-	if((m_status == KittySDK::Protocol::Offline) && (status_conv < KittySDK::Protocol::Offline)) {
+	if((m_status == KittySDK::IProtocol::Offline) && (status_conv < KittySDK::IProtocol::Offline)) {
 		QMap<QString, QVariant> args;
-		args.insert("id", Sounds::S_CONTACT_AVAIL);
+		args.insert("id", KittySDK::Sounds::S_CONTACT_AVAIL);
 		protocol()->core()->execPluginAction("Sounds", "playSound", args);
 	}
 
@@ -40,12 +41,12 @@ void KittySDK::GGContact::changeStatus(const quint32 &status, const QString &des
 	emit statusChanged(m_status, m_description);
 }
 
-void KittySDK::GGContact::setData(const QString &key, const QVariant &value)
+void Contact::setData(const QString &key, const QVariant &value)
 {
 	//qDebug() << "data" << uid() << key << value;
 
 	if(key == "birthday_data") {
-		m_data.insert(ContactInfos::I_BIRTHDAY, QDate::fromString(value.toString(), "yyyyMMdd0"));
+		m_data.insert(KittySDK::ContactInfos::I_BIRTHDAY, QDate::fromString(value.toString(), "yyyyMMdd0"));
 	} else {
 		m_data.insert(key, value);
 	}
@@ -53,32 +54,32 @@ void KittySDK::GGContact::setData(const QString &key, const QVariant &value)
 	emit dataChanged();
 }
 
-quint32 KittySDK::GGContact::uin() const
+quint32 Contact::uin() const
 {
 	return uid().toUInt();
 }
 
-void KittySDK::GGContact::prepareContextMenu(QMenu *menu)
+void Contact::prepareContextMenu(QMenu *menu)
 {
 	menu->addAction(tr("Update avatar"), this, SLOT(updateAvatar()));
 }
 
-void KittySDK::GGContact::loadSettings(const QMap<QString, QVariant> &settings)
+void Contact::loadSettings(const QMap<QString, QVariant> &settings)
 {
 	m_data.unite(settings);
 }
 
-QMap<QString, QVariant> KittySDK::GGContact::saveSettings()
+QMap<QString, QVariant> Contact::saveSettings()
 {
 	return m_data;
 }
 
-void KittySDK::GGContact::updateAvatar()
+void Contact::updateAvatar()
 {
 	m_netManager.get(QNetworkRequest(QUrl(QString("http://avatars.gg.pl/%1").arg(uid()))));
 }
 
-void KittySDK::GGContact::processReply(QNetworkReply *reply)
+void Contact::processReply(QNetworkReply *reply)
 {
 	if(reply->error() == QNetworkReply::NoError) {
 		QString redirectUrl = reply->attribute(QNetworkRequest::RedirectionTargetAttribute).toString();
@@ -96,3 +97,4 @@ void KittySDK::GGContact::processReply(QNetworkReply *reply)
 	reply->deleteLater();
 }
 
+}

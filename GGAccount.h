@@ -2,8 +2,9 @@
 #define GGACCOUNT_H
 
 #include "KittyGG/Packets/NotifyFirst.h"
-#include "SDK/Account.h"
 #include "GGProtocol.h"
+
+#include <IAccount.h>
 
 #include <QtCore/QStringList>
 #include <QtCore/QTimer>
@@ -17,29 +18,25 @@ namespace KittyGG
 	class Parser;
 }
 
-namespace KittySDK
+namespace GG
 {
-	class Protocol;
-	class GGClient;
-	class Contact;
-
-	class GGAccount: public Account
+	class Account: public KittySDK::IAccount
 	{
 		Q_OBJECT
 
 		public:
-			GGAccount(const QString &uid, GGProtocol *parent);
-			~GGAccount();
+			Account(const QString &uid, Protocol *parent);
+			~Account();
 
 			quint32 uin() const;
-			Protocol::Status status() const;
+			KittySDK::IProtocol::Status status() const;
 			QString description() const;
 
-			Contact *newContact(const QString &uid);
-			Contact *newContact(const quint32 &uin);
+			KittySDK::IContact *newContact(const QString &uid);
+			KittySDK::IContact *newContact(const quint32 &uin);
 
-			Contact *contactByUin(const quint32 &uin);
-			void insertContact(const QString &uid, Contact *contact);
+			KittySDK::IContact *contactByUin(const quint32 &uin);
+			void insertContact(const QString &uid, KittySDK::IContact *contact);
 
 			bool isConnected() const;
 
@@ -58,10 +55,10 @@ namespace KittySDK
 		public slots:
 			void loadSettings(const QMap<QString, QVariant> &settings);
 			QMap<QString, QVariant> saveSettings();
-			void changeStatus(const KittySDK::Protocol::Status &status, const QString &description);
+			void changeStatus(const KittySDK::IProtocol::Status &status, const QString &description);
 			QMenu *statusMenu();
-			void sendMessage(const Message &msg);
-			void sendTypingNotify(KittySDK::Contact *contact, bool typing, const int &length);
+			void sendMessage(const KittySDK::IMessage &msg);
+			void sendTypingNotify(KittySDK::IContact *contact, bool typing, const int &length);
 
 		private slots:
 			void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);
@@ -84,14 +81,19 @@ namespace KittySDK
 			void connectToHost(const QString &hostname);
 
 		private:
-			QMenu *m_statusMenu;
-			QStringList m_descriptionHistory;
+			quint32 m_status;
+			QString m_description;
+			QSslSocket *m_socket;
+			KittyGG::Parser *m_parser;
 			bool m_useSSL;
 			bool m_friendsOnly;
 			quint32 m_initialStatus;
 			QStringList m_serverList;
+			QStringList m_descriptionHistory;
+			QTimer m_pingTimer;
 			QTimer m_blinkTimer;
 			QSignalMapper *m_statusMapper;
+			QMenu *m_statusMenu;
 			QAction *m_availableAction;
 			QAction *m_awayAction;
 			QAction *m_ffcAction;
@@ -99,13 +101,7 @@ namespace KittySDK
 			QAction *m_invisibleAction;
 			QAction *m_unavailableAction;
 			QAction *m_descriptionAction;
-
-			quint32 m_status;
-			QString m_description;
 			QString m_initialDescription;
-			QTimer m_pingTimer;
-			QSslSocket *m_socket;
-			KittyGG::Parser *m_parser;
 	};
 }
 

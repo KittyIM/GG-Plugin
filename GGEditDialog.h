@@ -5,32 +5,36 @@
 
 namespace KittySDK
 {
-	class GGAccount;
-	class Protocol;
+	class IProtocol;
+}
 
+namespace GG
+{
 	namespace Ui
 	{
-		class GGEditDialog;
+		class EditDialog;
 	}
 
-	class GGEditDialog: public QDialog
+	class Account;
+
+	class EditDialog: public QDialog
 	{
 		Q_OBJECT
 
 		public:
-			GGEditDialog(Protocol *proto, QWidget *parent = 0);
-			~GGEditDialog();
+			EditDialog(KittySDK::IProtocol *proto, QWidget *parent = 0);
+			~EditDialog();
 
 			void reset();
-			void setup(GGAccount *account);
+			void setup(Account *account);
 
 		private slots:
 			void on_buttonBox_accepted();
 
 		private:
-			Ui::GGEditDialog *m_ui;
-			Protocol *m_protocol;
-			GGAccount *m_account;
+			Ui::EditDialog *m_ui;
+			KittySDK::IProtocol *m_protocol;
+			Account *m_account;
 	};
 }
 

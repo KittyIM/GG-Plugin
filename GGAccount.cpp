@@ -1,15 +1,16 @@
 #include "GGAccount.h"
 
-#include "SDK/SoundsConstants.h"
 #include "KittyGG/DataStream.h"
 #include "KittyGG/HUBLookup.h"
-#include "SDK/GGConstants.h"
 #include "KittyGG/KittyGG.h"
 #include "KittyGG/Parser.h"
-#include "SDK/constants.h"
-#include "SDK/Message.h"
 #include "GGContact.h"
 #include "constants.h"
+
+#include <SoundsConstants.h>
+#include <SDKConstants.h>
+#include <GGConstants.h>
+#include <IMessage.h>
 
 #include <QtCore/QSignalMapper>
 #include <QtCore/QThreadPool>
@@ -24,10 +25,10 @@
 #define qDebug() qDebug() << "[GGAccount]"
 #define qWarning() qWarning() << "[GGAccount]"
 
-namespace KittySDK
+namespace GG
 {
 
-GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(uid, parent)
+Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, parent)
 {
 	m_socket = new QSslSocket(this);
 	m_socket->setProxy(QNetworkProxy::applicationProxy());
@@ -47,7 +48,7 @@ GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(uid, paren
 	m_parser = new KittyGG::Parser();
 	connect(m_parser, SIGNAL(packetReceived(quint32,quint32,QByteArray)), SLOT(processPacket(quint32,quint32,QByteArray)));
 
-	setMe(new GGContact(uid, this));
+	setMe(new Contact(uid, this));
 	me()->setDisplay(protocol()->core()->profileName());
 
 	connect(&m_blinkTimer, SIGNAL(timeout()), SLOT(toggleConnectingStatus()));
@@ -69,95 +70,95 @@ GGAccount::GGAccount(const QString &uid, GGProtocol *parent): Account(uid, paren
 	m_statusMenu->addAction(m_descriptionAction);
 
 	m_statusMenu->addSeparator();
-	m_availableAction = new QAction(protocol()->core()->icon(Icons::I_GG_AVAILABLE), tr("Available"), this);
-	m_statusMapper->setMapping(m_availableAction, Protocol::Online);
+	m_availableAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_AVAILABLE), tr("Available"), this);
+	m_statusMapper->setMapping(m_availableAction, KittySDK::IProtocol::Online);
 	connect(m_availableAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_availableAction);
 
-	m_awayAction = new QAction(protocol()->core()->icon(Icons::I_GG_AWAY), tr("Be right back"), this);
-	m_statusMapper->setMapping(m_awayAction, Protocol::Away);
+	m_awayAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_AWAY), tr("Be right back"), this);
+	m_statusMapper->setMapping(m_awayAction, KittySDK::IProtocol::Away);
 	connect(m_awayAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_awayAction);
 
-	m_ffcAction = new QAction(protocol()->core()->icon(Icons::I_GG_FFC), tr("Free for chat"), this);
-	m_statusMapper->setMapping(m_ffcAction, Protocol::FFC);
+	m_ffcAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_FFC), tr("Free for chat"), this);
+	m_statusMapper->setMapping(m_ffcAction, KittySDK::IProtocol::FFC);
 	connect(m_ffcAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_ffcAction);
 
-	m_dndAction = new QAction(protocol()->core()->icon(Icons::I_GG_DND), tr("Do not disturb"), this);
-	m_statusMapper->setMapping(m_dndAction, Protocol::DND);
+	m_dndAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_DND), tr("Do not disturb"), this);
+	m_statusMapper->setMapping(m_dndAction, KittySDK::IProtocol::DND);
 	connect(m_dndAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_dndAction);
 
-	m_invisibleAction = new QAction(protocol()->core()->icon(Icons::I_GG_INVISIBLE), tr("Invisible"), this);
-	m_statusMapper->setMapping(m_invisibleAction, Protocol::Invisible);
+	m_invisibleAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_INVISIBLE), tr("Invisible"), this);
+	m_statusMapper->setMapping(m_invisibleAction, KittySDK::IProtocol::Invisible);
 	connect(m_invisibleAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_invisibleAction);
 
-	m_unavailableAction = new QAction(protocol()->core()->icon(Icons::I_GG_UNAVAILABLE), tr("Unavailable"), this);
-	m_statusMapper->setMapping(m_unavailableAction, Protocol::Offline);
+	m_unavailableAction = new QAction(protocol()->core()->icon(KittySDK::Icons::I_GG_UNAVAILABLE), tr("Unavailable"), this);
+	m_statusMapper->setMapping(m_unavailableAction, KittySDK::IProtocol::Offline);
 	connect(m_unavailableAction, SIGNAL(triggered()), m_statusMapper, SLOT(map()));
 	m_statusMenu->addAction(m_unavailableAction);
 }
 
-GGAccount::~GGAccount()
+Account::~Account()
 {
 	QThreadPool::globalInstance()->waitForDone();
 	delete m_socket;
 	delete m_statusMenu;
 }
 
-quint32 GGAccount::uin() const
+quint32 Account::uin() const
 {
 	return m_uid.toUInt();
 }
 
-Protocol::Status GGAccount::status() const
+KittySDK::IProtocol::Status Account::status() const
 {
-	return dynamic_cast<GGProtocol*>(protocol())->convertStatus(m_status);
+	return dynamic_cast<Protocol*>(protocol())->convertStatus(m_status);
 }
 
-QString GGAccount::description() const
+QString Account::description() const
 {
 	return m_description;
 }
 
-Contact *GGAccount::newContact(const QString &uid)
+KittySDK::IContact *Account::newContact(const QString &uid)
 {
-	foreach(Contact *cnt, contacts()) {
+	foreach(KittySDK::IContact *cnt, contacts()) {
 		if(cnt->uid() == uid) {
 			return cnt;
 		}
 	}
 
-	GGContact *cnt = new GGContact(uid, this);
+	Contact *cnt = new Contact(uid, this);
 
 	return cnt;
 }
 
-Contact *GGAccount::newContact(const quint32 &uin)
+KittySDK::IContact *Account::newContact(const quint32 &uin)
 {
 	return newContact(QString::number(uin));
 }
 
-Contact *GGAccount::contactByUin(const quint32 &uin)
+KittySDK::IContact *Account::contactByUin(const quint32 &uin)
 {
-	foreach(Contact *cnt, m_contacts) {
+	foreach(KittySDK::IContact *cnt, m_contacts) {
 		if(cnt->uid() == QString::number(uin)) {
 			return cnt;
 		}
 	}
 
-	Contact *cnt = newContact(uin);
+	KittySDK::IContact *cnt = newContact(uin);
 	cnt->setDisplay(QString::number(uin));
 	insertContact(cnt->uid(), cnt);
 
 	return cnt;
 }
 
-void GGAccount::insertContact(const QString &uid, Contact *contact)
+void Account::insertContact(const QString &uid, KittySDK::IContact *contact)
 {
-	Account::insertContact(uid, contact);
+	KittySDK::IAccount::insertContact(uid, contact);
 
 	if(isConnected()) {
 		KittyGG::NotifyAdd packet(uid.toUInt());
@@ -165,12 +166,12 @@ void GGAccount::insertContact(const QString &uid, Contact *contact)
 	}
 }
 
-bool GGAccount::isConnected() const
+bool Account::isConnected() const
 {
 	return (m_socket->state() == QAbstractSocket::ConnectedState);
 }
 
-void GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
+void Account::loadSettings(const QMap<QString, QVariant> &settings)
 {
 	QStringList defaultServers;
 	for(int i = 10; i <= 30; i++) {
@@ -188,7 +189,7 @@ void GGAccount::loadSettings(const QMap<QString, QVariant> &settings)
 	}
 }
 
-QMap<QString, QVariant> GGAccount::saveSettings()
+QMap<QString, QVariant> Account::saveSettings()
 {
 	QMap<QString, QVariant> settings;
 
@@ -205,27 +206,27 @@ QMap<QString, QVariant> GGAccount::saveSettings()
 	return settings;
 }
 
-void GGAccount::changeStatus(const Protocol::Status &stat, const QString &description)
+void Account::changeStatus(const KittySDK::IProtocol::Status &stat, const QString &description)
 {
 	quint32 status = KittyGG::Status::Available;
 	switch(stat) {
-		case Protocol::Away:
+		case KittySDK::IProtocol::Away:
 			status = KittyGG::Status::Busy;
 		break;
 
-		case Protocol::FFC:
+		case KittySDK::IProtocol::FFC:
 			status = KittyGG::Status::FreeForChat;
 		break;
 
-		case Protocol::DND:
+		case KittySDK::IProtocol::DND:
 			status = KittyGG::Status::DoNotDisturb;
 		break;
 
-		case Protocol::Invisible:
+		case KittySDK::IProtocol::Invisible:
 			status = KittyGG::Status::Invisible;
 		break;
 
-		case Protocol::Offline:
+		case KittySDK::IProtocol::Offline:
 			status = KittyGG::Status::Unavailable;
 		break;
 
@@ -254,15 +255,15 @@ void GGAccount::changeStatus(const Protocol::Status &stat, const QString &descri
 	}
 }
 
-QMenu *GGAccount::statusMenu()
+QMenu *Account::statusMenu()
 {
 	return m_statusMenu;
 }
 
-void GGAccount::sendMessage(const Message &msg)
+void Account::sendMessage(const KittySDK::IMessage &msg)
 {
 	if(isConnected()) {
-		if(GGContact *cnt = dynamic_cast<GGContact*>(msg.to().first())) {
+		if(Contact *cnt = dynamic_cast<Contact*>(msg.to().first())) {
 			KittyGG::MessageSend packet;
 			packet.setHtmlBody(msg.body());
 			packet.setUin(cnt->uin());
@@ -270,47 +271,47 @@ void GGAccount::sendMessage(const Message &msg)
 		}
 	} else {
 		//TODO: Create a queue and send when connected
-		Message err(msg.to().first(), me());
+		KittySDK::IMessage err(msg.to().first(), me());
 		err.setBody(tr("Not connected!"));
-		err.setDirection(Message::System);
+		err.setDirection(KittySDK::IMessage::System);
 		emit messageReceived(err);
 	}
 }
 
-void GGAccount::sendTypingNotify(Contact *contact, bool typing, const int &length)
+void Account::sendTypingNotify(KittySDK::IContact *contact, bool typing, const int &length)
 {
 	KittyGG::TypingNotify notify(typing ? length : 0, contact->uid().toUInt());
 	sendPacket(notify);
 }
 
-void GGAccount::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)
+void Account::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)
 {
 	QString uid = QString::number(uin);
 
 	if(uid == m_uid) {
-		if(GGProtocol *ggproto = dynamic_cast<GGProtocol*>(m_protocol)) {
+		if(Protocol *ggproto = dynamic_cast<Protocol*>(m_protocol)) {
 			m_blinkTimer.stop();
 			emit statusChanged(ggproto->convertStatus(status), description);
 		}
 	}
 
 	if(m_contacts.contains(uid)) {
-		dynamic_cast<GGContact*>(m_contacts.value(uid))->changeStatus(status, description);
+		dynamic_cast<Contact*>(m_contacts.value(uid))->changeStatus(status, description);
 	}
 }
 
-void GGAccount::toggleConnectingStatus()
+void Account::toggleConnectingStatus()
 {
 	if(m_blinkTimer.property("online").toBool()) {
-		emit statusChanged((Protocol::Status)-1, "");
+		emit statusChanged((KittySDK::IProtocol::Status)-1, "");
 		m_blinkTimer.setProperty("online", false);
 	} else {
-		emit statusChanged(Protocol::Online, "");
+		emit statusChanged(KittySDK::IProtocol::Online, "");
 		m_blinkTimer.setProperty("online", true);
 	}
 }
 
-void GGAccount::showDescriptionInput()
+void Account::showDescriptionInput()
 {
 	QInputDialog dialog;
 	dialog.setLabelText(tr("New description:"));
@@ -334,18 +335,18 @@ void GGAccount::showDescriptionInput()
 	}
 }
 
-void GGAccount::setStatus(int status)
+void Account::setStatus(int status)
 {
-	changeStatus(static_cast<Protocol::Status>(status), description());
+	changeStatus(static_cast<KittySDK::IProtocol::Status>(status), description());
 }
 
-void GGAccount::importFromServer()
+void Account::importFromServer()
 {
 	KittyGG::ListRequest packet(KittyGG::ListRequest::Get, 0);
 	sendPacket(packet);
 }
 
-void GGAccount::importFromFile()
+void Account::importFromFile()
 {
 	QString fileName = QFileDialog::getOpenFileName(0, tr("Choose file"), "", tr("XML files") + " (GG 8+) (*.xml);;" + tr("Text files") + " (GG 6-7) (*.txt)");
 	if(!fileName.isEmpty()) {
@@ -357,7 +358,7 @@ void GGAccount::importFromFile()
 	}
 }
 
-void GGAccount::parseXMLRoster(const QString &xml)
+void Account::parseXMLRoster(const QString &xml)
 {
 	QDomDocument doc;
 	doc.setContent(xml);
@@ -415,7 +416,7 @@ void GGAccount::parseXMLRoster(const QString &xml)
 			data.insert("Group", groups.value(groupId));
 
 			quint32 uin = number.firstChild().nodeValue().toUInt();
-			Contact *cnt = contactByUin(uin);
+			KittySDK::IContact *cnt = contactByUin(uin);
 
 			if(cnt->display() == cnt->uid()) {
 				cnt->setDisplay(data.value("ShowName"));
@@ -425,20 +426,20 @@ void GGAccount::parseXMLRoster(const QString &xml)
 				cnt->setGroup(data.value("Group"));
 			}
 
-			if(cnt->data(ContactInfos::I_HOMEPAGE).toString().isEmpty()) {
-				cnt->setData(ContactInfos::I_HOMEPAGE, data.value("WwwAddress"));
+			if(cnt->data(KittySDK::ContactInfos::I_HOMEPAGE).toString().isEmpty()) {
+				cnt->setData(KittySDK::ContactInfos::I_HOMEPAGE, data.value("WwwAddress"));
 			}
 
-			if(cnt->data(ContactInfos::I_FIRSTNAME).toString().isEmpty()) {
-				cnt->setData(ContactInfos::I_FIRSTNAME, data.value("FirstName"));
+			if(cnt->data(KittySDK::ContactInfos::I_FIRSTNAME).toString().isEmpty()) {
+				cnt->setData(KittySDK::ContactInfos::I_FIRSTNAME, data.value("FirstName"));
 			}
 
-			if(cnt->data(ContactInfos::I_LASTNAME).toString().isEmpty()) {
-				cnt->setData(ContactInfos::I_LASTNAME, data.value("LastName"));
+			if(cnt->data(KittySDK::ContactInfos::I_LASTNAME).toString().isEmpty()) {
+				cnt->setData(KittySDK::ContactInfos::I_LASTNAME, data.value("LastName"));
 			}
 
-			if(cnt->data(ContactInfos::I_HOME_STATE).toString().isEmpty()) {
-				cnt->setData(ContactInfos::I_HOME_STATE, data.value("Province"));
+			if(cnt->data(KittySDK::ContactInfos::I_HOME_STATE).toString().isEmpty()) {
+				cnt->setData(KittySDK::ContactInfos::I_HOME_STATE, data.value("Province"));
 			}
 
 		/*
@@ -456,7 +457,7 @@ void GGAccount::parseXMLRoster(const QString &xml)
 	}
 }
 
-void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)
+void Account::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)
 {
 	switch(type) {
 		case KittyGG::Welcome::Type:
@@ -483,7 +484,7 @@ void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteA
 				sendPacket(packet);
 			} else {
 				QList<KittyGG::NotifyEntry> roster;
-				foreach(const Contact *cnt, m_contacts) {
+				foreach(const KittySDK::IContact *cnt, m_contacts) {
 					roster << KittyGG::NotifyEntry(cnt->uid().toUInt());
 				}
 
@@ -556,19 +557,19 @@ void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteA
 			KittyGG::MessageRecv msg = KittyGG::MessageRecv::fromData(packet);
 
 			if(msg.htmlBody().size() > 0) {
-				QList<Contact*> contacts;
+				QList<KittySDK::IContact*> contacts;
 				contacts << me();
 				for(int i = 1; i < msg.uins().count(); i++) {
 					contacts.append(contactByUin(msg.uins().at(i)));
 				}
 
-				Message message(contactByUin(msg.uins().first()), contacts);
-				message.setDirection(Message::Incoming);
+				KittySDK::IMessage message(contactByUin(msg.uins().first()), contacts);
+				message.setDirection(KittySDK::IMessage::Incoming);
 				message.setBody(msg.htmlBody());
 				message.setTimeStamp(msg.timeStamp());
 
 				QMap<QString, QVariant> args;
-				args.insert("id", Sounds::S_MSG_RECV);
+				args.insert("id", KittySDK::Sounds::S_MSG_RECV);
 				protocol()->core()->execPluginAction("Sounds", "playSound", args);
 
 				emit messageReceived(message);
@@ -595,12 +596,12 @@ void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteA
 							file.write(img->data);
 							file.close();
 
-							Message message(contactByUin(msg.uin()), me());
-							message.setDirection(Message::Incoming);
+							KittySDK::IMessage message(contactByUin(msg.uin()), me());
+							message.setDirection(KittySDK::IMessage::Incoming);
 							message.setBody(QString("<img src=\"%1%2\" alt=\"%2\" title=\"%2\">").arg(imgDir.absolutePath() + "/").arg(Qt::escape(img->fileName)));
 
 							QMap<QString, QVariant> args;
-							args.insert("id", Sounds::S_MSG_RECV);
+							args.insert("id", KittySDK::Sounds::S_MSG_RECV);
 							protocol()->core()->execPluginAction("Sounds", "playSound", args);
 
 							emit messageReceived(message);
@@ -664,7 +665,7 @@ void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteA
 				foreach(const KittyGG::UserDataAttribute &attr, it.value()) {
 					QString uid = QString::number(it.key());
 					if(m_contacts.contains(uid)) {
-						dynamic_cast<GGContact*>(m_contacts.value(uid))->setData(attr.name, attr.value);
+						dynamic_cast<Contact*>(m_contacts.value(uid))->setData(attr.name, attr.value);
 					}
 				}
 			}
@@ -696,7 +697,7 @@ void GGAccount::processPacket(const quint32 &type, const quint32 &length, QByteA
 	}
 }
 
-void GGAccount::sendPacket(const KittyGG::Packet &packet)
+void Account::sendPacket(const KittyGG::Packet &packet)
 {
 	QByteArray data;
 	KittyGG::DataStream str(&data);
@@ -710,7 +711,7 @@ void GGAccount::sendPacket(const KittyGG::Packet &packet)
 	}
 }
 
-void GGAccount::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
+void Account::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 {
 	//qDebug() << "gonna send" << image->filePath + "/" + image->fileName << "to" << recipient << image->size << image->crc32;
 
@@ -736,13 +737,13 @@ void GGAccount::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 	}
 }
 
-void GGAccount::sendChangeStatusPacket()
+void Account::sendChangeStatusPacket()
 {
 	KittyGG::NewStatus packet(m_status | 0x4000, m_description);
 	sendPacket(packet);
 }
 
-void GGAccount::sendPingPacket()
+void Account::sendPingPacket()
 {
 	if(isConnected()) {
 		KittyGG::Ping ping;
@@ -750,13 +751,13 @@ void GGAccount::sendPingPacket()
 	}
 }
 
-void GGAccount::readSocket()
+void Account::readSocket()
 {
 	m_parser->append(m_socket->readAll());
 	QThreadPool::globalInstance()->start(m_parser);
 }
 
-void GGAccount::disconnected()
+void Account::disconnected()
 {
 	qDebug() << "Socket::Disconnected";
 
@@ -766,7 +767,7 @@ void GGAccount::disconnected()
 	m_pingTimer.stop();
 }
 
-void GGAccount::error(QAbstractSocket::SocketError socketError)
+void Account::error(QAbstractSocket::SocketError socketError)
 {
 	qDebug() << "Socket::error(" << socketError << ")" << m_socket->errorString();
 
@@ -776,17 +777,17 @@ void GGAccount::error(QAbstractSocket::SocketError socketError)
 	m_pingTimer.stop();
 }
 
-void GGAccount::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
+void Account::proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator)
 {
 	qDebug() << "Socket::proxyAuthReq";
 }
 
-void GGAccount::stateChanged(QAbstractSocket::SocketState socketState)
+void Account::stateChanged(QAbstractSocket::SocketState socketState)
 {
 	qDebug() << "Socket::stateChanged(" << socketState << ")";
 }
 
-void GGAccount::connectToHost(const QString &hostname)
+void Account::connectToHost(const QString &hostname)
 {
 	if(!hostname.isEmpty()) {
 		if(m_useSSL) {

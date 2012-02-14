@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>KittySDK::GGEditDialog</class>
- <widget class="QDialog" name="KittySDK::GGEditDialog">
+ <class>GG::EditDialog</class>
+ <widget class="QDialog" name="GG::EditDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -156,7 +156,7 @@
   <connection>
    <sender>buttonBox</sender>
    <signal>rejected()</signal>
-   <receiver>KittySDK::GGEditDialog</receiver>
+   <receiver>GG::EditDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

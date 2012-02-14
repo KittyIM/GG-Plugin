@@ -1,32 +1,36 @@
 #include "GGEditDialog.h"
 #include "ui_GGEditDialog.h"
 
-#include "SDK/GGConstants.h"
-#include "SDK/constants.h"
-#include "SDK/Protocol.h"
 #include "GGAccount.h"
+
+#include <SDKConstants.h>
+#include <GGConstants.h>
+#include <IProtocol.h>
 
 #include <QtGui/QMessageBox>
 
 #define qDebug() qDebug() << "[GGEditDialog]"
 #define qWarning() qWarning() << "[GGEditDialog]"
 
-namespace KittySDK
+namespace GG
 {
 
-GGEditDialog::GGEditDialog(Protocol *proto, QWidget *parent): QDialog(parent), m_ui(new Ui::GGEditDialog), m_protocol(proto)
+EditDialog::EditDialog(KittySDK::IProtocol *proto, QWidget *parent):
+	QDialog(parent),
+	m_ui(new Ui::EditDialog),
+	m_protocol(proto)
 {
 	m_ui->setupUi(this);
 
 	setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 }
 
-GGEditDialog::~GGEditDialog()
+EditDialog::~EditDialog()
 {
 	delete m_ui;
 }
 
-void GGEditDialog::reset()
+void EditDialog::reset()
 {
 	m_ui->uinEdit->clear();
 	m_ui->uinEdit->setEnabled(true);
@@ -43,12 +47,12 @@ void GGEditDialog::reset()
 	m_ui->startupComboBox->setItemIcon(5, m_protocol->core()->icon(KittySDK::Icons::I_GG_INVISIBLE));
 }
 
-void GGEditDialog::setup(GGAccount *account)
+void EditDialog::setup(Account *account)
 {
 	reset();
 
 	if(!account) {
-		m_account = new GGAccount("", dynamic_cast<GGProtocol*>(m_protocol));
+		m_account = new Account("", dynamic_cast<Protocol*>(m_protocol));
 	} else {
 		m_account = account;
 
@@ -64,30 +68,30 @@ void GGEditDialog::setup(GGAccount *account)
 				m_ui->startupComboBox->setCurrentIndex(0);
 			break;
 
-			case Protocol::Online:
+			case KittySDK::IProtocol::Online:
 				m_ui->startupComboBox->setCurrentIndex(1);
 			break;
 
-			case Protocol::Away:
+			case KittySDK::IProtocol::Away:
 				m_ui->startupComboBox->setCurrentIndex(2);
 			break;
 
-			case Protocol::DND:
+			case KittySDK::IProtocol::DND:
 				m_ui->startupComboBox->setCurrentIndex(3);
 			break;
 
-			case Protocol::FFC:
+			case KittySDK::IProtocol::FFC:
 				m_ui->startupComboBox->setCurrentIndex(4);
 			break;
 
-			case Protocol::Invisible:
+			case KittySDK::IProtocol::Invisible:
 				m_ui->startupComboBox->setCurrentIndex(5);
 			break;
 		}
 	}
 }
 
-void GGEditDialog::on_buttonBox_accepted()
+void EditDialog::on_buttonBox_accepted()
 {
 	if(m_ui->uinEdit->text().toUInt() == 0) {
 		QMessageBox::information(this, tr("Missing info"), tr("You have to enter UID"));
@@ -110,23 +114,23 @@ void GGEditDialog::on_buttonBox_accepted()
 		break;
 
 		case 1:
-			m_account->setInitialStatus(Protocol::Online);
+			m_account->setInitialStatus(KittySDK::IProtocol::Online);
 		break;
 
 		case 2:
-			m_account->setInitialStatus(Protocol::Away);
+			m_account->setInitialStatus(KittySDK::IProtocol::Away);
 		break;
 
 		case 3:
-			m_account->setInitialStatus(Protocol::DND);
+			m_account->setInitialStatus(KittySDK::IProtocol::DND);
 		break;
 
 		case 4:
-			m_account->setInitialStatus(Protocol::FFC);
+			m_account->setInitialStatus(KittySDK::IProtocol::FFC);
 		break;
 
 		case 5:
-			m_account->setInitialStatus(Protocol::Invisible);
+			m_account->setInitialStatus(KittySDK::IProtocol::Invisible);
 		break;
 	}
 

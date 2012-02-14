@@ -1,20 +1,21 @@
 #ifndef GGCONTACT_H
 #define GGCONTACT_H
 
-#include "SDK/Contact.h"
 #include "GGAccount.h"
+
+#include <IContact.h>
 
 #include <QtNetwork/QNetworkAccessManager>
 
-namespace KittySDK
+namespace GG
 {
-	class GGContact: public Contact
+	class Contact: public KittySDK::IContact
 	{
 		Q_OBJECT
 
 		public:
-			GGContact(const QString &uid, GGAccount *account);
-			~GGContact();
+			Contact(const QString &uid, Account *account);
+			~Contact();
 
 			quint32 uin() const;
 
