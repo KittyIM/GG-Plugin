@@ -68,7 +68,7 @@ HEADERS   += GGProtocol.h \
 
 FORMS     += GGEditDialog.ui
 
-RESOURCES += res.qrc
+RESOURCES += res/res.qrc
 
 isEmpty(SDK_PATH):error(Set the SDK_PATH variable!)
 include($$SDK_PATH/KittySDK.pri)

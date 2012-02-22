@@ -1,0 +1,10 @@
+<RCC>
+    <qresource prefix="/">
+        <file>glyphs/available.png</file>
+        <file>glyphs/away.png</file>
+        <file>glyphs/dnd.png</file>
+        <file>glyphs/ffc.png</file>
+        <file>glyphs/invisible.png</file>
+        <file>glyphs/unavailable.png</file>
+    </qresource>
+</RCC>

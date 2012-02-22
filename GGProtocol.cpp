@@ -15,7 +15,16 @@ namespace GG
 
 Protocol::Protocol(KittySDK::IPluginCore *core): KittySDK::IProtocol(core)
 {
-	m_info = new KittySDK::IProtocolInfo("Gadu-Gadu Protocol", "0.0.1", "arturo182", "arturo182@tlen.pl", "http://www.arturpacholec.pl/", "Gadu-Gadu", KittySDK::Icons::I_GG_AVAILABLE);
+	m_info = new KittySDK::IProtocolInfo();
+	m_info->setName(tr("Gadu-Gadu Protocol"));
+	m_info->setId("ggproto");
+	m_info->setVersion("0.0.1");
+	m_info->setAuthor("arturo182");
+	m_info->setEmail("arturo182@tlen.pl");
+	m_info->setURL("http://www.arturpacholec.pl/");
+	static_cast<KittySDK::IProtocolInfo*>(m_info)->setProtoName("Gadu-Gadu");
+	static_cast<KittySDK::IProtocolInfo*>(m_info)->setProtoIcon(KittySDK::Icons::I_GG_AVAILABLE);
+
 	m_editWindow = 0;
 
 	setAbilities(TextStandard | TextColor | SendImages | SendFiles | ChangeStatus | BlockContacts | TypingNotification);
