@@ -59,6 +59,7 @@ namespace GG
 			QMenu *statusMenu();
 			void sendMessage(const KittySDK::IMessage &msg);
 			void sendTypingNotify(KittySDK::IContact *contact, bool typing, const int &length);
+			void retranslate();
 
 		private slots:
 			void changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description);

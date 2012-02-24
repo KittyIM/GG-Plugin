@@ -174,7 +174,7 @@ bool Account::isConnected() const
 void Account::loadSettings(const QMap<QString, QVariant> &settings)
 {
 	QStringList defaultServers;
-	for(int i = 10; i <= 30; i++) {
+	for(int i = 10; i <= 30; ++i) {
 		defaultServers << "ggproxy-" + QString::number(i) + ".gadu-gadu.pl";
 	}
 
@@ -184,7 +184,7 @@ void Account::loadSettings(const QMap<QString, QVariant> &settings)
 	m_serverList = settings.value("serverList", defaultServers).toStringList();
 
 	int count = settings.value("descriptionCount").toInt();
-	for(int i = 0; i < count; i++) {
+	for(int i = 0; i < count; ++i) {
 		m_descriptionHistory.append(settings.value(QString("description%1").arg(i)).toString());
 	}
 }
@@ -199,7 +199,7 @@ QMap<QString, QVariant> Account::saveSettings()
 	settings.insert("serverList", m_serverList);
 
 	settings.insert("descriptionCount", m_descriptionHistory.count());
-	for(int i = 0; i < m_descriptionHistory.count(); i++) {
+	for(int i = 0; i < m_descriptionHistory.count(); ++i) {
 		settings.insert(QString("description%1").arg(i), m_descriptionHistory.at(i));
 	}
 
@@ -280,8 +280,41 @@ void Account::sendMessage(const KittySDK::IMessage &msg)
 
 void Account::sendTypingNotify(KittySDK::IContact *contact, bool typing, const int &length)
 {
-	KittyGG::TypingNotify notify(typing ? length : 0, contact->uid().toUInt());
-	sendPacket(notify);
+	if(isConnected()) {
+		KittyGG::TypingNotify notify(typing ? length : 0, contact->uid().toUInt());
+		sendPacket(notify);
+	}
+}
+
+void Account::retranslate()
+{
+	if(m_statusMenu->actions().count()) {
+		if(QAction *contactsAction = m_statusMenu->actions().first()) {
+			contactsAction->setText(tr("Contacts"));
+
+			QMenu *contactsMenu = contactsAction->menu();
+			if(contactsMenu->actions().count()) {
+				if(QAction *importAction = contactsMenu->actions().first()) {
+					importAction->setText(tr("Import"));
+
+					QMenu *importMenu = importAction->menu();
+					QList<QAction*> importActions = importMenu->actions();
+					if(importActions.count()) {
+						importActions[0]->setText(tr("From server"));
+						importActions[1]->setText(tr("From file"));
+					}
+				}
+			}
+		}
+	}
+
+	m_descriptionAction->setText(tr("Description..."));
+	m_availableAction->setText(tr("Available"));
+	m_awayAction->setText(tr("Be right back"));
+	m_ffcAction->setText(tr("Free for chat"));
+	m_dndAction->setText(tr("Do not disturb"));
+	m_invisibleAction->setText(tr("Invisible"));
+	m_unavailableAction->setText(tr("Unavailable"));
 }
 
 void Account::changeContactStatus(const quint32 &uin, const quint32 &status, const QString &description)
@@ -369,7 +402,7 @@ void Account::parseXMLRoster(const QString &xml)
 
 		QDomElement groupsElement = root.namedItem("Groups").toElement();
 		QDomNodeList groupList = groupsElement.elementsByTagName("Group");
-		for(int i = 0; i < groupList.count(); i++) {
+		for(int i = 0; i < groupList.count(); ++i) {
 			QDomElement group = groupList.at(i).toElement();
 
 			QDomElement id = group.namedItem("Id").toElement();
@@ -380,7 +413,7 @@ void Account::parseXMLRoster(const QString &xml)
 
 		QDomElement contactsElement = root.namedItem("Contacts").toElement();
 		QDomNodeList contactList = contactsElement.elementsByTagName("Contact");
-		for(int i = 0; i < contactList.count(); i++) {
+		for(int i = 0; i < contactList.count(); ++i) {
 			QDomElement contact = contactList.at(i).toElement();
 
 			QDomElement number = contact.namedItem("GGNumber").toElement();
@@ -558,8 +591,9 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 			if(msg.htmlBody().size() > 0) {
 				QList<KittySDK::IContact*> contacts;
+
 				contacts << me();
-				for(int i = 1; i < msg.uins().count(); i++) {
+				for(int i = 1; i < msg.uins().count(); ++i) {
 					contacts.append(contactByUin(msg.uins().at(i)));
 				}
 
@@ -568,9 +602,34 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 				message.setBody(msg.htmlBody());
 				message.setTimeStamp(msg.timeStamp());
 
-				QMap<QString, QVariant> args;
-				args.insert("id", KittySDK::Sounds::S_MSG_RECV);
-				protocol()->core()->execPluginAction("Sounds", "playSound", args);
+				QMap<QString, QVariant> soundsArgs;
+				soundsArgs.insert("id", Sounds::Sounds::S_MSG_RECV);
+				protocol()->core()->execPluginAction("sounds", "playSound", soundsArgs);
+
+				const int maxBodyLength = 40;
+
+				QString uins;
+				foreach(const int &uin, msg.uins()) {
+					uins += QString::number(uin);
+				}
+				uins.chop(1);
+
+				QString notifyText = "<a href=\"ggproto://openChat?sender=" + uid() + "&uins=" + uins + "\"><span class=\"notifyText\">";
+				notifyText += tr("Message from") + " ";
+				notifyText += "<b>" + Qt::escape(contacts.first()->display()) + "</b></span>";
+				notifyText += "<br><span class=\"notifyLink\">\"";
+				if(msg.plainBody().length() > maxBodyLength) {
+					notifyText += msg.plainBody().left(maxBodyLength) + "...";
+				} else {
+					notifyText += msg.plainBody();
+				}
+				notifyText += "\"</span></a>";
+
+				QMap<QString, QVariant> notifyArgs;
+				notifyArgs.insert("icon", protocol()->core()->icon(KittySDK::Icons::I_MESSAGE));
+				notifyArgs.insert("text", notifyText);
+				notifyArgs.insert("timeout", -1);
+				protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
 
 				emit messageReceived(message);
 			}
@@ -601,8 +660,8 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 							message.setBody(QString("<img src=\"%1%2\" alt=\"%2\" title=\"%2\">").arg(imgDir.absolutePath() + "/").arg(Qt::escape(img->fileName)));
 
 							QMap<QString, QVariant> args;
-							args.insert("id", KittySDK::Sounds::S_MSG_RECV);
-							protocol()->core()->execPluginAction("Sounds", "playSound", args);
+							args.insert("id", Sounds::Sounds::S_MSG_RECV);
+							protocol()->core()->execPluginAction("sounds", "playSound", args);
 
 							emit messageReceived(message);
 						}

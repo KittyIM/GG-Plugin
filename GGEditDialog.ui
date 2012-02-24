@@ -10,9 +10,6 @@
     <height>325</height>
    </rect>
   </property>
-  <property name="windowTitle">
-   <string>Form</string>
-  </property>
   <layout class="QGridLayout" name="gridLayout_2">
    <property name="margin">
     <number>6</number>
@@ -108,12 +105,12 @@
         </item>
         <item>
          <property name="text">
-          <string>Do Not Disturb</string>
+          <string>Do not disturb</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>Free For Chat</string>
+          <string>Free for chat</string>
          </property>
         </item>
         <item>

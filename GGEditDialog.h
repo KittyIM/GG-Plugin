@@ -31,6 +31,9 @@ namespace GG
 		private slots:
 			void on_buttonBox_accepted();
 
+		protected:
+			void changeEvent(QEvent *event);
+
 		private:
 			Ui::EditDialog *m_ui;
 			KittySDK::IProtocol *m_protocol;

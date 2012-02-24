@@ -53,8 +53,10 @@ void EditDialog::setup(Account *account)
 
 	if(!account) {
 		m_account = new Account("", dynamic_cast<Protocol*>(m_protocol));
+		setWindowTitle(tr("Add account"));
 	} else {
 		m_account = account;
+		setWindowTitle(tr("Edit account"));
 
 		m_ui->uinEdit->setText(m_account->uid());
 		m_ui->uinEdit->setEnabled(false);
@@ -140,6 +142,15 @@ void EditDialog::on_buttonBox_accepted()
 	}
 
 	close();
+}
+
+void EditDialog::changeEvent(QEvent *event)
+{
+	if(event->type() == QEvent::LanguageChange) {
+		m_ui->retranslateUi(this);
+	}
+
+	QDialog::changeEvent(event);
 }
 
 }

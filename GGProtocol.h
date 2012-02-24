@@ -6,9 +6,12 @@
 namespace GG
 {
 	class EditDialog;
+	class Account;
 
 	class Protocol: public KittySDK::IProtocol
 	{
+		Q_OBJECT
+
 		public:
 			Protocol(KittySDK::IPluginCore *core);
 			~Protocol();
@@ -28,6 +31,7 @@ namespace GG
 
 		private:
 			EditDialog *m_editWindow;
+			QList<Account*> m_accounts;
 	};
 }
 

@@ -39,7 +39,6 @@ Protocol::~Protocol()
 
 void Protocol::init()
 {
-	qDebug() << "Init";
 	core()->addIcon(KittySDK::Icons::I_GG_AVAILABLE, QPixmap(":/glyphs/available.png"));
 	core()->addIcon(KittySDK::Icons::I_GG_AWAY, QPixmap(":/glyphs/away.png"));
 	core()->addIcon(KittySDK::Icons::I_GG_DND, QPixmap(":/glyphs/dnd.png"));
@@ -93,7 +92,9 @@ QString Protocol::statusIcon(KittySDK::IProtocol::Status status)
 
 KittySDK::IAccount *Protocol::newAccount(const QString &uid)
 {
-	return new Account(uid, this);
+	Account *acc = new Account(uid, this);
+	m_accounts << acc;
+	return acc;
 }
 
 QDialog *Protocol::editDialog(KittySDK::IAccount *account)
@@ -141,7 +142,15 @@ KittySDK::IProtocol::Status Protocol::convertStatus(const quint32 &status) const
 
 void Protocol::execAction(const QString &name, const QMap<QString, QVariant> &args)
 {
-	qDebug() << name << args;
+	if(name == "retranslate") {
+		m_info->setName(tr("Gadu-Gadu Protocol"));
+
+		foreach(Account *acc, m_accounts) {
+			acc->retranslate();
+		}
+	} else {
+		qDebug() << name << args;
+	}
 }
 
 KITTY_PLUGIN(Protocol)
