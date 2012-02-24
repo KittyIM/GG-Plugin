@@ -85,7 +85,7 @@ MessageRecv MessageRecv::fromData(const QByteArray &data)
 				quint32 count;
 				str >> count;
 
-				for(quint32 i = 0; i < count; i++) {
+				for(quint32 i = 0; i < count; ++i) {
 					quint32 uin;
 					str >> uin;
 

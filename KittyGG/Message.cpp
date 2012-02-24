@@ -136,7 +136,7 @@ QString Message::plainToHtml(const quint32 &sender, const QString &plain, const 
 		str >> font;
 		attr_length -= sizeof(font);
 
-		pos++;
+		++pos;
 		fragment = plain.mid(last_pos, pos - last_pos);
 		last_pos = pos;
 
