@@ -18,7 +18,7 @@ namespace KittyGG
 			ListRequest(const quint8 &type, const quint32 &version);
 
 			enum { Type = 0x40 };
-			virtual quint32 packetType() const { return Type; }
+			quint32 packetType() const { return Type; }
 
 			quint8 type() const { return m_type; }
 			void setType(const quint8 &type) { m_type = type; }

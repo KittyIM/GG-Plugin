@@ -13,6 +13,7 @@
 #include "Packets/NotifyReply.h"
 #include "Packets/NotifyLast.h"
 #include "Packets/MessageAck.h"
+#include "Packets/MultiLogin.h"
 #include "Packets/ListEmpty.h"
 #include "Packets/ListReply.h"
 #include "Packets/NewStatus.h"

@@ -759,6 +759,23 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 		}
 		break;
 
+		case KittyGG::MultiLogin::Type:
+		{
+			KittyGG::MultiLogin logon = KittyGG::MultiLogin::fromData(packet);
+			foreach(KittyGG::MultiLoginItem *item, logon.items()) {
+				QString notifyText = "<b>" + tr("Multilogin") + "</b><br>";
+				notifyText += tr("IP") + ": " + item->ip + "<br>";
+				notifyText += tr("Login time") + ": " + item->time.toString() + "<br>";
+				notifyText += tr("Client") + ": " + item->client;
+
+				QMap<QString, QVariant> notifyArgs;
+				notifyArgs.insert("icon", protocol()->core()->icon(KittySDK::Icons::I_CONNECT));
+				notifyArgs.insert("text", notifyText);
+				protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
+			}
+		}
+		break;
+
 		default:
 			qDebug() << "Unknown type" << type;
 		break;

@@ -9,7 +9,7 @@ namespace KittyGG
 	{
 		public:
 			enum { Type = 0x0b };
-			virtual quint32 packetType() const { return Type; }
+			quint32 packetType() const { return Type; }
 
 			QByteArray toData() const { return QByteArray(); }
 	};

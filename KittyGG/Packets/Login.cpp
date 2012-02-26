@@ -15,7 +15,7 @@ Login::Login(const quint32 &uin, const QString &password, const quint32 &seed):
 	m_hashType(Sha1),
 	m_language("pl"),
 	m_flags(UnknownFlag | StrangerLinks),
-	m_features(Status80 | Message80 | NewLogin | NewStatuses | ImageDescription |  TypingNotify | UserData)
+	m_features(Status80 | Message80 | NewLogin | NewStatuses | ImageDescription |  TypingNotify | UserData | MultiLogin)
 {
 }
 

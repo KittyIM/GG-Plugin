@@ -11,7 +11,7 @@ namespace KittyGG
 			ListReply(const quint8 &type, const quint32 &version);
 
 			enum { Type = 0x41 };
-			virtual quint32 packetType() const { return Type; }
+			quint32 packetType() const { return Type; }
 
 			QByteArray reply() const { return m_reply; }
 			void setReply(const QByteArray &reply) { m_reply = reply; }

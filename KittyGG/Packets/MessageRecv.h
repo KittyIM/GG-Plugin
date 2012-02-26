@@ -26,7 +26,6 @@ namespace KittyGG
 			~MessageRecv();
 
 			enum { Type = 0x2e };
-			virtual quint32 packetType() const { return Type; }
 
 			quint32 uin() const { return (m_uins.isEmpty()) ? 0 : m_uins.first(); }
 			void setUin(const quint32 &uin) { (m_uins.isEmpty()) ? m_uins.append(uin) : m_uins.replace(0, uin); }

@@ -9,7 +9,7 @@ namespace KittyGG
 	{
 		public:
 			enum { Type = 0x10 };
-			virtual quint32 packetType() const { return Type; }
+			quint32 packetType() const { return Type; }
 	};
 }
 

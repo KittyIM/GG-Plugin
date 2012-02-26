@@ -20,7 +20,7 @@ namespace KittyGG
 	{
 		public:
 			enum { Type = 0x0f };
-			virtual quint32 packetType() const { return Type; }
+			quint32 packetType() const { return Type; }
 
 			void setContacts(const QList<NotifyEntry> &contacts) { m_contacts = contacts; }
 			QList<NotifyEntry> contacts() const { return m_contacts; }
