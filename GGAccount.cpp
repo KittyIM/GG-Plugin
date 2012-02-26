@@ -104,6 +104,11 @@ Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, 
 Account::~Account()
 {
 	QThreadPool::globalInstance()->waitForDone();
+
+	m_pingTimer.stop();
+	//FIXME: Maybe this could be handled better
+	disconnect(m_socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
+
 	delete m_socket;
 	delete m_statusMenu;
 }
