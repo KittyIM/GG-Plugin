@@ -597,9 +597,13 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 					contacts.append(contactByUin(msg.uins().at(i)));
 				}
 
+				//remove bots
+				QString htmlBody = msg.htmlBody();
+				htmlBody.remove(QRegExp("<bot[^>]*/>"));
+
 				KittySDK::IMessage message(contactByUin(msg.uins().first()), contacts);
 				message.setDirection(KittySDK::IMessage::Incoming);
-				message.setBody(msg.htmlBody());
+				message.setBody(htmlBody);
 				message.setTimeStamp(msg.timeStamp());
 
 				QMap<QString, QVariant> soundsArgs;
@@ -820,10 +824,15 @@ void Account::disconnected()
 {
 	qDebug() << "Socket::Disconnected";
 
+	m_pingTimer.stop();
+
 	m_status = KittyGG::Status::Unavailable;
 	changeContactStatus(uin(), m_status, m_description);
 
-	m_pingTimer.stop();
+	//all contacts go bye bye
+	foreach(KittySDK::IContact *cnt, m_contacts) {
+		dynamic_cast<Contact*>(cnt)->changeStatus(KittyGG::Status::Unavailable, "", true);
+	}
 }
 
 void Account::error(QAbstractSocket::SocketError socketError)
