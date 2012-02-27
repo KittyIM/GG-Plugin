@@ -32,6 +32,15 @@ QByteArray MessageSend::toData() const
 		str <<  Message::htmlToPlain(m_htmlBody);
 	}
 
+	if(m_uins.count() > 1) {
+		str << (quint8)0x01;
+		str << (quint32)(m_uins.count() - 1);
+
+		for(int i = 1; i < m_uins.count(); ++i) {
+			str << m_uins.at(i);
+		}
+	}
+
 	foreach(ImageDetails *img, m_imageRequests) {
 		str << (quint8)0x04;
 		str << img->size;

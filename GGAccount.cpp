@@ -268,10 +268,20 @@ QMenu *Account::statusMenu()
 void Account::sendMessage(const KittySDK::IMessage &msg)
 {
 	if(isConnected()) {
-		if(Contact *cnt = dynamic_cast<Contact*>(msg.to().first())) {
+		QList<quint32> uins;
+
+		foreach(KittySDK::IContact *cnt, msg.to()) {
+			uins << cnt->uid().toUInt();
+		}
+
+		foreach(quint32 uin, uins) {
+			QList<quint32> customUins = uins;
+			customUins.removeAll(uin);
+			customUins.prepend(uin);
+
 			KittyGG::MessageSend packet;
 			packet.setHtmlBody(msg.body());
-			packet.setUin(cnt->uin());
+			packet.setUins(customUins);
 			sendPacket(packet);
 		}
 	} else {
