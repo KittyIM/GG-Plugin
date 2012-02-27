@@ -1,6 +1,7 @@
 #include "GGEditDialog.h"
 #include "ui_GGEditDialog.h"
 
+#include "KittyGG/Packets/Status.h"
 #include "GGAccount.h"
 
 #include <SDKConstants.h>
@@ -45,6 +46,7 @@ void EditDialog::reset()
 	m_ui->startupComboBox->setItemIcon(3, m_protocol->core()->icon(KittySDK::Icons::I_GG_DND));
 	m_ui->startupComboBox->setItemIcon(4, m_protocol->core()->icon(KittySDK::Icons::I_GG_FFC));
 	m_ui->startupComboBox->setItemIcon(5, m_protocol->core()->icon(KittySDK::Icons::I_GG_INVISIBLE));
+	m_ui->startupComboBox->setItemIcon(6, m_protocol->core()->icon(KittySDK::Icons::I_GG_UNAVAILABLE));
 }
 
 void EditDialog::setup(Account *account)
@@ -70,24 +72,28 @@ void EditDialog::setup(Account *account)
 				m_ui->startupComboBox->setCurrentIndex(0);
 			break;
 
-			case KittySDK::IProtocol::Online:
+			case KittyGG::Status::Available:
 				m_ui->startupComboBox->setCurrentIndex(1);
 			break;
 
-			case KittySDK::IProtocol::Away:
+			case KittyGG::Status::Busy:
 				m_ui->startupComboBox->setCurrentIndex(2);
 			break;
 
-			case KittySDK::IProtocol::DND:
+			case KittyGG::Status::DoNotDisturb:
 				m_ui->startupComboBox->setCurrentIndex(3);
 			break;
 
-			case KittySDK::IProtocol::FFC:
+			case KittyGG::Status::FreeForChat:
 				m_ui->startupComboBox->setCurrentIndex(4);
 			break;
 
-			case KittySDK::IProtocol::Invisible:
+			case KittyGG::Status::Invisible:
 				m_ui->startupComboBox->setCurrentIndex(5);
+			break;
+
+			case KittyGG::Status::Unavailable:
+				m_ui->startupComboBox->setCurrentIndex(6);
 			break;
 		}
 	}
@@ -116,23 +122,27 @@ void EditDialog::on_buttonBox_accepted()
 		break;
 
 		case 1:
-			m_account->setInitialStatus(KittySDK::IProtocol::Online);
+			m_account->setInitialStatus(KittyGG::Status::Available);
 		break;
 
 		case 2:
-			m_account->setInitialStatus(KittySDK::IProtocol::Away);
+			m_account->setInitialStatus(KittyGG::Status::Busy);
 		break;
 
 		case 3:
-			m_account->setInitialStatus(KittySDK::IProtocol::DND);
+			m_account->setInitialStatus(KittyGG::Status::DoNotDisturb);
 		break;
 
 		case 4:
-			m_account->setInitialStatus(KittySDK::IProtocol::FFC);
+			m_account->setInitialStatus(KittyGG::Status::FreeForChat);
 		break;
 
 		case 5:
-			m_account->setInitialStatus(KittySDK::IProtocol::Invisible);
+			m_account->setInitialStatus(KittyGG::Status::Invisible);
+		break;
+
+		case 6:
+			m_account->setInitialStatus(KittyGG::Status::Unavailable);
 		break;
 	}
 

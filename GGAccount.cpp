@@ -41,7 +41,7 @@ Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, 
 
 	connect(&m_pingTimer, SIGNAL(timeout()), this, SLOT(sendPingPacket()));
 
-	//m_status = KittyGG::Status::Unavailable;
+	m_status = KittyGG::Status::Unavailable;
 	//m_initialStatus = KittyGG::Status::Available;
 
 	m_pingTimer.setInterval(3 * 60 * 1000);
@@ -192,6 +192,19 @@ void Account::loadSettings(const QMap<QString, QVariant> &settings)
 	for(int i = 0; i < count; ++i) {
 		m_descriptionHistory.append(settings.value(QString("description%1").arg(i)).toString());
 	}
+
+	if(m_initialStatus) {
+		if(m_initialStatus != KittyGG::Status::Unavailable) {
+			if(Protocol *ggproto = dynamic_cast<Protocol*>(m_protocol)) {
+				changeStatus(ggproto->convertStatus(m_initialStatus), "");
+			}
+		}
+	} else {
+		if(Protocol *ggproto = dynamic_cast<Protocol*>(m_protocol)) {
+			quint32 status = settings.value("previousStatus").toUInt();
+			changeStatus(ggproto->convertStatus(status), "");
+		}
+	}
 }
 
 QMap<QString, QVariant> Account::saveSettings()
@@ -201,6 +214,7 @@ QMap<QString, QVariant> Account::saveSettings()
 	settings.insert("userSSL", m_useSSL);
 	settings.insert("statusFriendsOnly", m_friendsOnly);
 	settings.insert("initialStatus", m_initialStatus);
+	settings.insert("previousStatus", m_status);
 	settings.insert("serverList", m_serverList);
 
 	settings.insert("descriptionCount", m_descriptionHistory.count());
@@ -240,17 +254,14 @@ void Account::changeStatus(const KittySDK::IProtocol::Status &stat, const QStrin
 		break;
 	}
 
-	if((status != m_status) || (description != m_description)) {
-		if(isConnected()) {
-			m_status = status;
-			m_description = description;
+	if(((status | 0x4000) != (m_status | 0x4000)) || (description != m_description)) {
+		m_status = status;
+		m_description = description;
 
+		if(isConnected()) {
 			sendChangeStatusPacket();
 		} else {
 			m_blinkTimer.start(1000);
-
-			m_initialStatus = status;
-			m_initialDescription = description;
 
 			//let's look for a server
 			KittyGG::HUBLookup *lookup = new KittyGG::HUBLookup();
@@ -513,8 +524,8 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 			KittyGG::Welcome welcome = KittyGG::Welcome::fromData(packet);
 
 			KittyGG::Login login(uin(), m_password, welcome.seed());
-			login.setInitialStatus(m_initialStatus | 0x4000);
-			login.setInitialDescription(m_initialDescription);
+			login.setInitialStatus(m_status | 0x4000);
+			login.setInitialDescription(m_description);
 			sendPacket(login);
 		}
 		break;
