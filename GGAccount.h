@@ -102,7 +102,6 @@ namespace GG
 			QAction *m_invisibleAction;
 			QAction *m_unavailableAction;
 			QAction *m_descriptionAction;
-			QString m_initialDescription;
 	};
 }
 

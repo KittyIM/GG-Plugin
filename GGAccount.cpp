@@ -629,6 +629,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 				message.setDirection(KittySDK::IMessage::Incoming);
 				message.setBody(htmlBody);
 				message.setTimeStamp(msg.timeStamp());
+				emit messageReceived(message);
 
 				QMap<QString, QVariant> soundsArgs;
 				soundsArgs.insert("id", Sounds::Sounds::S_MSG_RECV);
@@ -658,8 +659,6 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 				notifyArgs.insert("text", notifyText);
 				notifyArgs.insert("timeout", -1);
 				protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
-
-				emit messageReceived(message);
 			}
 
 			//process image download
