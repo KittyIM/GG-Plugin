@@ -196,13 +196,13 @@ void Account::loadSettings(const QMap<QString, QVariant> &settings)
 	if(m_initialStatus) {
 		if(m_initialStatus != KittyGG::Status::Unavailable) {
 			if(Protocol *ggproto = dynamic_cast<Protocol*>(m_protocol)) {
-				changeStatus(ggproto->convertStatus(m_initialStatus), "");
+				changeStatus(ggproto->convertStatus(m_initialStatus), settings.value("previousDescription").toString());
 			}
 		}
 	} else {
 		if(Protocol *ggproto = dynamic_cast<Protocol*>(m_protocol)) {
 			quint32 status = settings.value("previousStatus").toUInt();
-			changeStatus(ggproto->convertStatus(status), "");
+			changeStatus(ggproto->convertStatus(status), settings.value("previousDescription").toString());
 		}
 	}
 }
@@ -215,6 +215,7 @@ QMap<QString, QVariant> Account::saveSettings()
 	settings.insert("statusFriendsOnly", m_friendsOnly);
 	settings.insert("initialStatus", m_initialStatus);
 	settings.insert("previousStatus", m_status);
+	settings.insert("previousDescription", m_description);
 	settings.insert("serverList", m_serverList);
 
 	settings.insert("descriptionCount", m_descriptionHistory.count());
@@ -385,11 +386,9 @@ void Account::showDescriptionInput()
 			m_descriptionHistory.prepend(description);
 		}
 
+		m_description = description;
 		if(isConnected()) {
-			m_description = description;
 			sendChangeStatusPacket();
-		} else {
-			m_initialDescription = description;
 		}
 	}
 }
@@ -532,8 +531,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 		case KittyGG::LoginOk::Type:
 		{
-			m_status = m_initialStatus;
-			m_description = m_initialDescription;
+			//m_status = m_initialStatus;
 
 			m_pingTimer.start();
 
