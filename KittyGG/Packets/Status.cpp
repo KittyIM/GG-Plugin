@@ -52,7 +52,7 @@ Status Status::fromData(const QByteArray &data)
 	packet.setImageSize(image_size);
 	packet.setFlags(flags);
 
-	delete description;
+	delete [] description;
 
 	return packet;
 }

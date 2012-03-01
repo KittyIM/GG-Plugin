@@ -150,7 +150,7 @@ MessageRecv MessageRecv::fromData(const QByteArray &data)
 
 				packet.setImageDownload(new ImageDownloadInfo(flag, size, crc32, data, fileName));
 
-				delete raw;
+				delete [] raw;
 			}
 			break;
 		}
@@ -181,9 +181,9 @@ MessageRecv MessageRecv::fromData(const QByteArray &data)
 	packet.setHtmlBody(text);
 	packet.setUins(senders);
 
-	delete text_attr;
-	delete html;
-	delete plain;
+	delete [] text_attr;
+	delete [] html;
+	delete [] plain;
 
 	return packet;
 }

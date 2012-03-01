@@ -49,8 +49,8 @@ UserData UserData::fromData(const QByteArray &data)
 
 			attributes << UserDataAttribute(QString::fromAscii(name, name_size), attr_type, QString::fromAscii(value, value_size));
 
-			delete name;
-			delete value;
+			delete [] name;
+			delete [] value;
 
 			num_attr--;
 		}

@@ -43,7 +43,7 @@ MultiLogin MultiLogin::fromData(const QByteArray &data)
 			str.readRawData(client, client_length);
 			item->client = QString::fromAscii(client, client_length);
 
-			delete client;
+			delete [] client;
 		}
 
 		item->ip = QHostAddress(qFromBigEndian(ip)).toString();

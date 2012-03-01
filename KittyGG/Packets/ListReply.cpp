@@ -56,11 +56,11 @@ ListReply ListReply::fromData(const QByteArray &data)
 		} while(ret != Z_STREAM_END);
 
 		inflateEnd(&strm);
-
-		delete raw;
 	} else {
 		qWarning() << "inflateInit failed";
 	}
+	
+	delete [] raw;
 
 	ListReply packet(type, ver);
 	packet.setReply(reply);
