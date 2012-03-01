@@ -11,6 +11,7 @@
 #include <SDKConstants.h>
 #include <GGConstants.h>
 #include <IMessage.h>
+#include <IChat.h>
 
 #include <QtCore/QSignalMapper>
 #include <QtCore/QThreadPool>
@@ -262,7 +263,7 @@ void Account::changeStatus(const KittySDK::IProtocol::Status &stat, const QStrin
 		if(isConnected()) {
 			sendChangeStatusPacket();
 		} else {
-			m_blinkTimer.start(1000);
+			m_blinkTimer.start(protocol()->core()->setting(KittySDK::Settings::S_BLINKING_SPEED, 500).toInt());
 
 			//let's look for a server
 			KittyGG::HUBLookup *lookup = new KittyGG::HUBLookup();
@@ -280,6 +281,10 @@ QMenu *Account::statusMenu()
 void Account::sendMessage(const KittySDK::IMessage &msg)
 {
 	if(isConnected()) {
+		if(!m_knownChats.contains(msg.chat()->id())) {
+			m_knownChats << msg.chat()->id();
+		}
+
 		QList<quint32> uins;
 
 		foreach(KittySDK::IContact *cnt, msg.to()) {
@@ -297,11 +302,7 @@ void Account::sendMessage(const KittySDK::IMessage &msg)
 			sendPacket(packet);
 		}
 	} else {
-		//TODO: Create a queue and send when connected
-		KittySDK::IMessage err(msg.to().first(), me());
-		err.setBody(tr("Not connected!"));
-		err.setDirection(KittySDK::IMessage::System);
-		emit messageReceived(err);
+		protocol()->core()->enqueue(msg);
 	}
 }
 
@@ -604,8 +605,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 		case KittyGG::XmlAction::Type:
 		{
 			KittyGG::XmlAction data = KittyGG::XmlAction::fromData(packet);
-			//TODO
-			//emit xmlActionReceived(data.action());
+			//TODO: emit xmlActionReceived(data.action());
 		}
 		break;
 
@@ -635,30 +635,28 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 				soundsArgs.insert("id", Sounds::Sounds::S_MSG_RECV);
 				protocol()->core()->execPluginAction("sounds", "playSound", soundsArgs);
 
-				const int maxBodyLength = 40;
+				//notify only for 1st message
+				if(!m_knownChats.contains(message.chat()->id())) {
+					m_knownChats << message.chat()->id();
 
-				QString uins;
-				foreach(const int &uin, msg.uins()) {
-					uins += QString::number(uin);
+					const int maxBodyLength = 40;
+
+					QString notifyText = "<a href=\"ggproto://openChat?chatId=" + message.chat()->id() + "\"><span class=\"notifyText\">";
+					notifyText += tr("Message from") + " ";
+					notifyText += "<b>" + Qt::escape(message.from()->display()) + "</b></span>";
+					notifyText += "<br><span class=\"notifyLink\">\"";
+					if(msg.plainBody().length() > maxBodyLength) {
+						notifyText += msg.plainBody().left(maxBodyLength) + "...";
+					} else {
+						notifyText += msg.plainBody();
+					}
+					notifyText += "\"</span></a>";
+
+					QMap<QString, QVariant> notifyArgs;
+					notifyArgs.insert("icon", protocol()->core()->icon(KittySDK::Icons::I_MESSAGE));
+					notifyArgs.insert("text", notifyText);
+					protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
 				}
-				uins.chop(1);
-
-				QString notifyText = "<a href=\"ggproto://openChat?sender=" + uid() + "&uins=" + uins + "\"><span class=\"notifyText\">";
-				notifyText += tr("Message from") + " ";
-				notifyText += "<b>" + Qt::escape(contacts.first()->display()) + "</b></span>";
-				notifyText += "<br><span class=\"notifyLink\">\"";
-				if(msg.plainBody().length() > maxBodyLength) {
-					notifyText += msg.plainBody().left(maxBodyLength) + "...";
-				} else {
-					notifyText += msg.plainBody();
-				}
-				notifyText += "\"</span></a>";
-
-				QMap<QString, QVariant> notifyArgs;
-				notifyArgs.insert("icon", protocol()->core()->icon(KittySDK::Icons::I_MESSAGE));
-				notifyArgs.insert("text", notifyText);
-				notifyArgs.insert("timeout", -1);
-				protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
 			}
 
 			//process image download
