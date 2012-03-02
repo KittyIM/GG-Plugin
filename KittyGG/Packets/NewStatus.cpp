@@ -16,7 +16,7 @@ QByteArray NewStatus::toData() const
 	QByteArray data;
 	DataStream str(&data);
 
-	QByteArray description = m_description.toLocal8Bit();
+	QByteArray description = m_description.toAscii();
 
 	str << m_status;
 	str << m_flags;
