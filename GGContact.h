@@ -20,7 +20,7 @@ namespace GG
 			quint32 uin() const;
 
 			void prepareContextMenu(QMenu *menu);
-			void changeStatus(const quint32 &status, const QString &description, bool silent = false);
+			void changeStatus(const quint32 &status, const QString &description);
 			void setData(const QString &name, const QVariant &data);
 
 		public slots:

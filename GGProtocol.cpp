@@ -148,8 +148,6 @@ void Protocol::execAction(const QString &name, const QMap<QString, QVariant> &ar
 		foreach(Account *acc, m_accounts) {
 			acc->retranslate();
 		}
-	} else if(name == "openChat") {
-		core()->dequeue(args.value("chatId").toString());
 	} else {
 		qDebug() << name << args;
 	}

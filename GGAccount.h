@@ -95,7 +95,6 @@ namespace GG
 			QTimer m_blinkTimer;
 			QSignalMapper *m_statusMapper;
 			QMenu *m_statusMenu;
-			QStringList m_knownChats;
 			QAction *m_availableAction;
 			QAction *m_awayAction;
 			QAction *m_ffcAction;

@@ -281,10 +281,6 @@ QMenu *Account::statusMenu()
 void Account::sendMessage(const KittySDK::IMessage &msg)
 {
 	if(isConnected()) {
-		if(!m_knownChats.contains(msg.chat()->id())) {
-			m_knownChats << msg.chat()->id();
-		}
-
 		QList<quint32> uins;
 
 		foreach(KittySDK::IContact *cnt, msg.to()) {
@@ -630,33 +626,6 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 				message.setBody(htmlBody);
 				message.setTimeStamp(msg.timeStamp());
 				emit messageReceived(message);
-
-				QMap<QString, QVariant> soundsArgs;
-				soundsArgs.insert("id", Sounds::Sounds::S_MSG_RECV);
-				protocol()->core()->execPluginAction("sounds", "playSound", soundsArgs);
-
-				//notify only for 1st message
-				if(!m_knownChats.contains(message.chat()->id())) {
-					m_knownChats << message.chat()->id();
-
-					const int maxBodyLength = 40;
-
-					QString notifyText = "<a href=\"ggproto://openChat?chatId=" + message.chat()->id() + "\"><span class=\"notifyText\">";
-					notifyText += tr("Message from") + " ";
-					notifyText += "<b>" + Qt::escape(message.from()->display()) + "</b></span>";
-					notifyText += "<br><span class=\"notifyLink\">\"";
-					if(msg.plainBody().length() > maxBodyLength) {
-						notifyText += msg.plainBody().left(maxBodyLength) + "...";
-					} else {
-						notifyText += msg.plainBody();
-					}
-					notifyText += "\"</span></a>";
-
-					QMap<QString, QVariant> notifyArgs;
-					notifyArgs.insert("icon", protocol()->core()->icon(KittySDK::Icons::I_MESSAGE));
-					notifyArgs.insert("text", notifyText);
-					protocol()->core()->execPluginAction("notify", "addNotify", notifyArgs);
-				}
 			}
 
 			//process image download
@@ -682,12 +651,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 							KittySDK::IMessage message(contactByUin(msg.uin()), me());
 							message.setDirection(KittySDK::IMessage::Incoming);
-							message.setBody(QString("<img src=\"%1%2\" alt=\"%2\" title=\"%2\">").arg(imgDir.absolutePath() + "/").arg(Qt::escape(img->fileName)));
-
-							QMap<QString, QVariant> args;
-							args.insert("id", Sounds::Sounds::S_MSG_RECV);
-							protocol()->core()->execPluginAction("sounds", "playSound", args);
-
+							message.setBody(QString("<img src=\"file:/%1%2\" alt=\"%2\" title=\"%2\">").arg(imgDir.absolutePath() + "/").arg(Qt::escape(img->fileName)));
 							emit messageReceived(message);
 						}
 
@@ -869,7 +833,7 @@ void Account::disconnected()
 
 	//all contacts go bye bye
 	foreach(KittySDK::IContact *cnt, m_contacts) {
-		dynamic_cast<Contact*>(cnt)->changeStatus(KittyGG::Status::Unavailable, "", true);
+		dynamic_cast<Contact*>(cnt)->changeStatus(KittyGG::Status::Unavailable, "");
 	}
 }
 
