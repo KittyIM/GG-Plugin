@@ -26,9 +26,9 @@ namespace GG
 		public slots:
 			void loadSettings(const QMap<QString, QVariant> &settings);
 			QMap<QString, QVariant> saveSettings();
+			void updateAvatar();
 
 		private slots:
-			void updateAvatar();
 			void processReply(QNetworkReply *reply);
 
 		private:

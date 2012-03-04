@@ -84,6 +84,9 @@ void Contact::processReply(QNetworkReply *reply)
 			QPixmap avat;
 			avat.loadFromData(reply->readAll());
 			avat.save(protocol()->core()->profilesDir() + protocol()->core()->profileName() + "/avatars/" + QCryptographicHash::hash(QString("avatar_" + protocol()->protoInfo()->protoName() + "_" + uid()).toAscii(), QCryptographicHash::Md5).toHex() + ".png");
+
+			//redraw contact list
+			emit statusChanged(m_status, m_description);
 		}
 	} else {
 		qDebug() << reply->errorString();

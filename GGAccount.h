@@ -80,6 +80,7 @@ namespace GG
 			void proxyAuthenticationRequired(const QNetworkProxy &proxy, QAuthenticator *authenticator);
 			void stateChanged(QAbstractSocket::SocketState socketState);
 			void connectToHost(const QString &hostname);
+			void updateAvatars();
 
 		private:
 			quint32 m_status;
@@ -102,6 +103,7 @@ namespace GG
 			QAction *m_invisibleAction;
 			QAction *m_unavailableAction;
 			QAction *m_descriptionAction;
+			QAction *m_avatarAction;
 	};
 }
 

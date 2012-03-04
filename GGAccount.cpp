@@ -43,7 +43,6 @@ Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, 
 	connect(&m_pingTimer, SIGNAL(timeout()), this, SLOT(sendPingPacket()));
 
 	m_status = KittyGG::Status::Unavailable;
-	//m_initialStatus = KittyGG::Status::Available;
 
 	m_pingTimer.setInterval(3 * 60 * 1000);
 	m_parser = new KittyGG::Parser();
@@ -56,11 +55,16 @@ Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, 
 
 	m_statusMenu = new QMenu();
 
+
 	QMenu *contactsMenu = m_statusMenu->addMenu(tr("Contacts"));
 	QMenu *importMenu = contactsMenu->addMenu(tr("Import"));
 
 	importMenu->addAction(tr("From server"), this, SLOT(importFromServer()));
 	importMenu->addAction(tr("From file"), this, SLOT(importFromFile()));
+
+	m_avatarAction = new QAction(tr("Update avatars"), this);
+	connect(m_avatarAction, SIGNAL(triggered()), SLOT(updateAvatars()));
+	m_statusMenu->addAction(m_avatarAction);
 
 	m_statusMapper = new QSignalMapper(this);
 	connect(m_statusMapper, SIGNAL(mapped(int)), SLOT(setStatus(int)));
@@ -298,7 +302,7 @@ void Account::sendMessage(const KittySDK::IMessage &msg)
 			sendPacket(packet);
 		}
 	} else {
-		protocol()->core()->enqueue(msg);
+		protocol()->core()->enqueueMsg(msg);
 	}
 }
 
@@ -867,6 +871,15 @@ void Account::connectToHost(const QString &hostname)
 		}
 	} else {
 		//TODO: iterate over server list
+	}
+}
+
+void Account::updateAvatars()
+{
+	foreach(KittySDK::IContact *cnt, m_contacts) {
+		if(Contact *contact = qobject_cast<Contact*>(cnt)) {
+			contact->updateAvatar();
+		}
 	}
 }
 
