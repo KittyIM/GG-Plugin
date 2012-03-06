@@ -151,7 +151,7 @@ KittySDK::IContact *Account::newContact(const quint32 &uin)
 	return newContact(QString::number(uin));
 }
 
-KittySDK::IContact *Account::contactByUin(const quint32 &uin)
+KittySDK::IContact *Account::contactByUin(const quint32 &uin, bool temp)
 {
 	foreach(KittySDK::IContact *cnt, m_contacts) {
 		if(cnt->uid() == QString::number(uin)) {
@@ -161,7 +161,9 @@ KittySDK::IContact *Account::contactByUin(const quint32 &uin)
 
 	KittySDK::IContact *cnt = newContact(uin);
 	cnt->setDisplay(QString::number(uin));
+	cnt->setData(KittySDK::ContactInfos::I_TEMPORARY, temp);
 	insertContact(cnt->uid(), cnt);
+	emit contactAdded(cnt);
 
 	return cnt;
 }
@@ -508,8 +510,6 @@ void Account::parseXMLRoster(const QString &xml)
 		  data.insert("Birth", birthday.firstChild().nodeValue());
 		  data.insert("City", city.firstChild().nodeValue());
 		*/
-
-			emit contactAdded(cnt);
 		}
 	} else {
 		qWarning() << "Wrong format!";
@@ -618,14 +618,14 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 				contacts << me();
 				for(int i = 1; i < msg.uins().count(); ++i) {
-					contacts.append(contactByUin(msg.uins().at(i)));
+					contacts.append(contactByUin(msg.uins().at(i), true));
 				}
 
 				//remove bots
 				QString htmlBody = msg.htmlBody();
 				htmlBody.remove(QRegExp("<bot[^>]*/>"));
 
-				KittySDK::IMessage message(contactByUin(msg.uins().first()), contacts);
+				KittySDK::IMessage message(contactByUin(msg.uins().first(), true), contacts);
 				message.setDirection(KittySDK::IMessage::Incoming);
 				message.setBody(htmlBody);
 				message.setTimeStamp(msg.timeStamp());
@@ -702,7 +702,9 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 		{
 			KittyGG::TypingNotify notify = KittyGG::TypingNotify::fromData(packet);
 
-			emit typingNotifyReceived(contactByUin(notify.uin()), notify.type() > 0, notify.type());
+			if(protocol()->core()->contact(protocol()->protoInfo()->protoName(), uid(), QString::number(notify.uin()))) {
+				emit typingNotifyReceived(contactByUin(notify.uin()), notify.type() > 0, notify.type());
+			}
 		}
 		break;
 
@@ -761,7 +763,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 		break;
 
 		default:
-			qDebug() << "Unknown type" << type;
+			qDebug() << "Unknown type" << type << "length" << length;
 		break;
 	}
 }

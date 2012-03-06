@@ -35,7 +35,7 @@ namespace GG
 			KittySDK::IContact *newContact(const QString &uid);
 			KittySDK::IContact *newContact(const quint32 &uin);
 
-			KittySDK::IContact *contactByUin(const quint32 &uin);
+			KittySDK::IContact *contactByUin(const quint32 &uin, bool temp = false);
 			void insertContact(const QString &uid, KittySDK::IContact *contact);
 
 			bool isConnected() const;
