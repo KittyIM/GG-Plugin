@@ -41,7 +41,9 @@ void Contact::setData(const QString &key, const QVariant &value)
 	//qDebug() << "data" << uid() << key << value;
 
 	if(key == "birthday_data") {
-		m_data.insert(KittySDK::ContactInfos::I_BIRTHDAY, QDate::fromString(value.toString(), "yyyyMMdd0"));
+		if(m_data.value<QDate>(KittySDK::ContactInfos::I_BIRTHDAY) == QDate(1900, 1, 1)) {
+			m_data.insert(KittySDK::ContactInfos::I_BIRTHDAY, QDate::fromString(value.toString(), "yyyyMMdd0"));
+		}
 	} else {
 		m_data.insert(key, value);
 	}
