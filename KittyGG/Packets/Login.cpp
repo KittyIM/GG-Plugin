@@ -30,6 +30,8 @@ QByteArray Login::toData() const
 
 	QByteArray version("KittyIM");
 
+	QByteArray description = m_initialDescription.toAscii();
+
 	str << m_uin;
 	str << m_language.toLatin1();
 	str << m_hashType;
@@ -42,8 +44,8 @@ QByteArray Login::toData() const
 	str << (quint8)0x64;					// unknown
 	str << (quint32)version.size();
 	str << version;
-	str << (quint32)m_initialDescription.size();
-	str << m_initialDescription.toLocal8Bit().data();
+	str << (quint32)description.size();
+	str << description;
 
 	return data;
 }

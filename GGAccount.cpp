@@ -235,30 +235,55 @@ QMap<QString, QVariant> Account::saveSettings()
 
 void Account::changeStatus(const KittySDK::IProtocol::Status &stat, const QString &description)
 {
+
 	quint32 status = KittyGG::Status::Available;
 	switch(stat) {
 		case KittySDK::IProtocol::Away:
-			status = KittyGG::Status::Busy;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::Busy;
+			} else {
+				status = KittyGG::Status::BusyDescr;
+			}
 		break;
 
 		case KittySDK::IProtocol::FFC:
-			status = KittyGG::Status::FreeForChat;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::FreeForChat;
+			} else {
+				status = KittyGG::Status::FreeForChatDescr;
+			}
 		break;
 
 		case KittySDK::IProtocol::DND:
-			status = KittyGG::Status::DoNotDisturb;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::DoNotDisturb;
+			} else {
+				status = KittyGG::Status::DoNotDisturbDescr;
+			}
 		break;
 
 		case KittySDK::IProtocol::Invisible:
-			status = KittyGG::Status::Invisible;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::Invisible;
+			} else {
+				status = KittyGG::Status::InvisibleDescr;
+			}
 		break;
 
 		case KittySDK::IProtocol::Offline:
-			status = KittyGG::Status::Unavailable;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::Unavailable;
+			} else {
+				status = KittyGG::Status::UnavailableDescr;
+			}
 		break;
 
 		default:
-			status = KittyGG::Status::Available;
+			if(description.isEmpty()) {
+				status = KittyGG::Status::Available;
+			} else {
+				status = KittyGG::Status::AvailableDescr;
+			}
 		break;
 	}
 
@@ -518,6 +543,8 @@ void Account::parseXMLRoster(const QString &xml)
 
 void Account::processPacket(const quint32 &type, const quint32 &length, QByteArray packet)
 {
+	//qDebug() << "PACKET" << type << length;
+
 	switch(type) {
 		case KittyGG::Welcome::Type:
 		{
@@ -532,8 +559,6 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 		case KittyGG::LoginOk::Type:
 		{
-			//m_status = m_initialStatus;
-
 			m_pingTimer.start();
 
 			//send roster
@@ -718,6 +743,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 				foreach(const KittyGG::UserDataAttribute &attr, it.value()) {
 					QString uid = QString::number(it.key());
+
 					if(m_contacts.contains(uid)) {
 						dynamic_cast<Contact*>(m_contacts.value(uid))->setData(attr.name, attr.value);
 					}
@@ -810,6 +836,8 @@ void Account::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 
 void Account::sendChangeStatusPacket()
 {
+	qDebug() << (m_status | 0x4000) << m_description;
+
 	KittyGG::NewStatus packet(m_status | 0x4000, m_description);
 	sendPacket(packet);
 }

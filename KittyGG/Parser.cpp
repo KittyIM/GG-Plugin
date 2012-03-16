@@ -23,9 +23,10 @@ void Parser::run()
 		str >> type >> length;
 
 		if((quint32)m_buffer.size() >= (length + sizeof(quint32) * 2)) {
-			emit packetReceived(type, length, m_buffer.mid(sizeof(quint32) * 2, length));
-
+			QByteArray data = m_buffer.mid(sizeof(quint32) * 2, length);
 			m_buffer = m_buffer.mid(length + sizeof(quint32) * 2);
+
+			emit packetReceived(type, length, data);
 		} else {
 			break;
 		}
