@@ -25,8 +25,6 @@ UserData UserData::fromData(const QByteArray &data)
 	str >> type;
 	str >> num;
 
-	qDebug() << type << num;
-
 	while(num > 0) {
 		str >> uin;
 		str >> num_attr;

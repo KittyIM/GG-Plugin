@@ -836,8 +836,6 @@ void Account::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 
 void Account::sendChangeStatusPacket()
 {
-	qDebug() << (m_status | 0x4000) << m_description;
-
 	KittyGG::NewStatus packet(m_status | 0x4000, m_description);
 	sendPacket(packet);
 }
