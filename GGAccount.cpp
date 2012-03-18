@@ -968,7 +968,7 @@ void Account::checkMsgAcks()
 			}
 
 			KittySDK::IMessage msg(ack->contact, me());
-			msg.setBody(tr("Wiadomość prawdopodobnie nie została wysłana") + ":" + body);
+			msg.setBody(tr("Message may not have been sent") + ":" + body);
 			msg.setDirection(KittySDK::IMessage::System);
 
 			emit messageReceived(msg);

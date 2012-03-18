@@ -2,6 +2,133 @@
 <!DOCTYPE TS>
 <TS version="2.0" language="pl_PL">
 <context>
+    <name>GG::Account</name>
+    <message>
+        <location filename="../GGAccount.cpp" line="63"/>
+        <location filename="../GGAccount.cpp" line="360"/>
+        <source>Contacts</source>
+        <translation>Kontakty</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="64"/>
+        <location filename="../GGAccount.cpp" line="365"/>
+        <source>Import</source>
+        <translation>Importuj</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="66"/>
+        <location filename="../GGAccount.cpp" line="370"/>
+        <source>From server</source>
+        <translation>Z serwera</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="67"/>
+        <location filename="../GGAccount.cpp" line="371"/>
+        <source>From file</source>
+        <translation>Z pliku</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="69"/>
+        <source>Update avatars</source>
+        <translation>Aktualizuj awatary</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="77"/>
+        <location filename="../GGAccount.cpp" line="378"/>
+        <source>Description...</source>
+        <translation>Opis...</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="82"/>
+        <location filename="../GGAccount.cpp" line="379"/>
+        <source>Available</source>
+        <translation>Dostępny</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="87"/>
+        <location filename="../GGAccount.cpp" line="380"/>
+        <source>Be right back</source>
+        <translation>Zaraz wracam</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="92"/>
+        <location filename="../GGAccount.cpp" line="381"/>
+        <source>Free for chat</source>
+        <translation>Chętny do rozmowy</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="97"/>
+        <location filename="../GGAccount.cpp" line="382"/>
+        <source>Do not disturb</source>
+        <translation>Zajęty</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="102"/>
+        <location filename="../GGAccount.cpp" line="383"/>
+        <source>Invisible</source>
+        <translation>Niewidoczny</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="107"/>
+        <location filename="../GGAccount.cpp" line="384"/>
+        <source>Unavailable</source>
+        <translation>Niedostępny</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="417"/>
+        <source>New description:</source>
+        <translation>Nowy opis:</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="449"/>
+        <source>Choose file</source>
+        <translation>Wybierz plik</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="449"/>
+        <source>XML files</source>
+        <translation>Pliki XML</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="449"/>
+        <source>Text files</source>
+        <translation>Pliki tekstowe</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="803"/>
+        <source>Multilogin</source>
+        <translation>Multi logowanie</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="804"/>
+        <source>IP</source>
+        <translation>IP</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="805"/>
+        <source>Login time</source>
+        <translation>Czas logowania</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="806"/>
+        <source>Client</source>
+        <translation>Klient</translation>
+    </message>
+    <message>
+        <location filename="../GGAccount.cpp" line="971"/>
+        <source>Message may not have been sent</source>
+        <translation>Wiadomość prawdopodobnie nie została wysłana</translation>
+    </message>
+</context>
+<context>
+    <name>GG::Contact</name>
+    <message>
+        <location filename="../GGContact.cpp" line="61"/>
+        <source>Update avatar</source>
+        <translation>Aktualizuj awatar</translation>
+    </message>
+</context>
+<context>
     <name>GG::EditDialog</name>
     <message>
         <location filename="../GGEditDialog.ui"/>
@@ -118,123 +245,6 @@
         <location filename="../ui_GGEditDialog.h" line="162"/>
         <source>Unavailable</source>
         <translation>Niedostępny</translation>
-    </message>
-</context>
-<context>
-    <name>GG::Account</name>
-    <message>
-        <location filename="../GGAccount.cpp" line="59"/>
-        <location filename="../GGAccount.cpp" line="317"/>
-        <source>Contacts</source>
-        <translation>Kontakty</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="60"/>
-        <location filename="../GGAccount.cpp" line="322"/>
-        <source>Import</source>
-        <translation>Importuj</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="62"/>
-        <location filename="../GGAccount.cpp" line="327"/>
-        <source>From server</source>
-        <translation>Z serwera</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="63"/>
-        <location filename="../GGAccount.cpp" line="328"/>
-        <source>From file</source>
-        <translation>Z pliku</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="69"/>
-        <location filename="../GGAccount.cpp" line="335"/>
-        <source>Description...</source>
-        <translation>Opis...</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="74"/>
-        <location filename="../GGAccount.cpp" line="336"/>
-        <source>Available</source>
-        <translation>Dostępny</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="79"/>
-        <location filename="../GGAccount.cpp" line="337"/>
-        <source>Be right back</source>
-        <translation>Zaraz wracam</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="84"/>
-        <location filename="../GGAccount.cpp" line="338"/>
-        <source>Free for chat</source>
-        <translation>Chętny do rozmowy</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="89"/>
-        <location filename="../GGAccount.cpp" line="339"/>
-        <source>Do not disturb</source>
-        <translation>Zajęty</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="94"/>
-        <location filename="../GGAccount.cpp" line="340"/>
-        <source>Invisible</source>
-        <translation>Niewidoczny</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="99"/>
-        <location filename="../GGAccount.cpp" line="341"/>
-        <source>Unavailable</source>
-        <translation>Niedostępny</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="374"/>
-        <source>New description:</source>
-        <translation>Nowy opis:</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="406"/>
-        <source>Choose file</source>
-        <translation>Wybierz plik</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="406"/>
-        <source>XML files</source>
-        <translation>Pliki XML</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="406"/>
-        <source>Text files</source>
-        <translation>Pliki tekstowe</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="746"/>
-        <source>Multilogin</source>
-        <translation>Multi logowanie</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="747"/>
-        <source>IP</source>
-        <translation>IP</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="748"/>
-        <source>Login time</source>
-        <translation>Czas logowania</translation>
-    </message>
-    <message>
-        <location filename="../GGAccount.cpp" line="749"/>
-        <source>Client</source>
-        <translation>Klient</translation>
-    </message>
-</context>
-<context>
-    <name>GG::Contact</name>
-    <message>
-        <location filename="../GGContact.cpp" line="59"/>
-        <source>Update avatar</source>
-        <translation>Aktualizuj awatar</translation>
     </message>
 </context>
 <context>
