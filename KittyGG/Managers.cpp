@@ -25,7 +25,7 @@ void DownloadMgr::append(ImageDownload *item)
 
 void DownloadMgr::remove(ImageDownload *item)
 {
-	m_list.removeAll(item);
+	m_list.removeOne(item);
 }
 
 ImageUpload *UploadMgr::byCrc32(const quint32 &crc32)

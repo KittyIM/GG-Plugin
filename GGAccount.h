@@ -20,6 +20,14 @@ namespace KittyGG
 
 namespace GG
 {
+	struct AckItem
+	{
+		QString msg;
+		quint32 seq;
+		KittySDK::IContact *contact;
+		int timer;
+	};
+
 	class Account: public KittySDK::IAccount
 	{
 		Q_OBJECT
@@ -74,6 +82,7 @@ namespace GG
 			void sendImage(const quint32 &recipient, KittyGG::ImageUpload *image);
 			void sendChangeStatusPacket();
 			void sendPingPacket();
+			void startHubLookup();
 			void readSocket();
 			void disconnected();
 			void error(QAbstractSocket::SocketError socketError);
@@ -81,6 +90,7 @@ namespace GG
 			void stateChanged(QAbstractSocket::SocketState socketState);
 			void connectToHost(const QString &hostname);
 			void updateAvatars();
+			void checkMsgAcks();
 
 		private:
 			quint32 m_status;
@@ -91,8 +101,10 @@ namespace GG
 			bool m_friendsOnly;
 			quint32 m_initialStatus;
 			QStringList m_serverList;
+			QList<AckItem*> m_ackList;
 			QStringList m_descriptionHistory;
 			QTimer m_pingTimer;
+			QTimer m_ackTimer;
 			QTimer m_blinkTimer;
 			QSignalMapper *m_statusMapper;
 			QMenu *m_statusMenu;

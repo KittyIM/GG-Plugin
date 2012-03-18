@@ -34,17 +34,21 @@ Account::Account(const QString &uid, Protocol *parent): KittySDK::IAccount(uid, 
 	m_socket = new QSslSocket(this);
 	m_socket->setProxy(QNetworkProxy::applicationProxy());
 
-	connect(m_socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
-	connect(m_socket, SIGNAL(disconnected()), this, SLOT(disconnected()));
-	connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
-	connect(m_socket, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), this, SLOT(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)));
-	connect(m_socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), this, SLOT(stateChanged(QAbstractSocket::SocketState)));
+	connect(m_socket, SIGNAL(readyRead()), SLOT(readSocket()));
+	connect(m_socket, SIGNAL(disconnected()), SLOT(disconnected()));
+	connect(m_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(error(QAbstractSocket::SocketError)));
+	connect(m_socket, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), SLOT(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)));
+	connect(m_socket, SIGNAL(stateChanged(QAbstractSocket::SocketState)), SLOT(stateChanged(QAbstractSocket::SocketState)));
 
-	connect(&m_pingTimer, SIGNAL(timeout()), this, SLOT(sendPingPacket()));
+	connect(&m_pingTimer, SIGNAL(timeout()), SLOT(sendPingPacket()));
+	connect(&m_ackTimer, SIGNAL(timeout()), SLOT(checkMsgAcks()));
 
 	m_status = KittyGG::Status::Unavailable;
 
 	m_pingTimer.setInterval(3 * 60 * 1000);
+	m_ackTimer.setInterval(1000);
+	m_ackTimer.start();
+
 	m_parser = new KittyGG::Parser();
 	connect(m_parser, SIGNAL(packetReceived(quint32,quint32,QByteArray)), SLOT(processPacket(quint32,quint32,QByteArray)));
 
@@ -294,12 +298,7 @@ void Account::changeStatus(const KittySDK::IProtocol::Status &stat, const QStrin
 		if(isConnected()) {
 			sendChangeStatusPacket();
 		} else {
-			m_blinkTimer.start(protocol()->core()->setting(KittySDK::Settings::S_BLINKING_SPEED, 500).toInt());
-
-			//let's look for a server
-			KittyGG::HUBLookup *lookup = new KittyGG::HUBLookup();
-			connect(lookup, SIGNAL(serverFound(QString)), SLOT(connectToHost(QString)));
-			QThreadPool::globalInstance()->start(lookup);
+			startHubLookup();
 		}
 	}
 }
@@ -326,6 +325,19 @@ void Account::sendMessage(const KittySDK::IMessage &msg)
 			KittyGG::MessageSend packet;
 			packet.setHtmlBody(msg.body());
 			packet.setUins(customUins);
+
+			if(msg.chat()) {
+				QString body = msg.body();
+				body.remove(QRegExp("<[^>]*>"));
+
+				AckItem *ack = new AckItem();
+				ack->timer = 0;
+				ack->msg = body;
+				ack->contact = msg.to().first();
+				ack->seq = packet.seq();
+				m_ackList << ack;
+			}
+
 			sendPacket(packet);
 		}
 	} else {
@@ -410,7 +422,7 @@ void Account::showDescriptionInput()
 		QString description = dialog.textValue();
 
 		if(!description.isEmpty()) {
-			m_descriptionHistory.removeAll(description);
+			m_descriptionHistory.removeOne(description);
 			m_descriptionHistory.prepend(description);
 		}
 
@@ -446,6 +458,8 @@ void Account::importFromFile()
 
 void Account::parseXMLRoster(const QString &xml)
 {
+	//qDebug() << QString(xml).replace("<", "&lt;");
+
 	QDomDocument doc;
 	doc.setContent(xml);
 
@@ -716,8 +730,17 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 		case KittyGG::MessageAck::Type:
 		{
 			KittyGG::MessageAck ack = KittyGG::MessageAck::fromData(packet);
+			//qDebug() << "ACK" << ack.recipient() << ack.seq() << ack.status();
 
-			if(ack.status() != KittyGG::MessageAck::Delivered) {
+			if(ack.status() == KittyGG::MessageAck::Delivered) {
+				foreach(AckItem *item, m_ackList) {
+					if(item->seq == ack.seq()) {
+						m_ackList.removeOne(item);
+						delete item;
+						break;
+					}
+				}
+			} else {
 				qDebug() << "Message sent to" << ack.recipient() << "with seq" << ack.seq() << "has status" << ack.status();
 			}
 		}
@@ -745,6 +768,7 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 					QString uid = QString::number(it.key());
 
 					if(m_contacts.contains(uid)) {
+						//qDebug() << uid << attr.name << attr.value;
 						dynamic_cast<Contact*>(m_contacts.value(uid))->setData(attr.name, attr.value);
 					}
 				}
@@ -754,12 +778,13 @@ void Account::processPacket(const quint32 &type, const quint32 &length, QByteArr
 
 		case KittyGG::Disconnecting::Type:
 		{
-			//qDebug() << "It's P_DISCONNECTING";
+			//qDebug() << "It's Disconnecting";
 		}
 		break;
 
 		case KittyGG::DisconnectAck::Type:
 		{
+			//qDebug() << "It's DisconnectAck";
 			m_socket->disconnectFromHost();
 		}
 		break;
@@ -828,7 +853,7 @@ void Account::sendImage(const quint32 &recipient, KittyGG::ImageUpload *image)
 			buffer = buffer.mid(1905);
 		}
 
-		qDebug() << "image sent";
+		//qDebug() << "image sent";
 
 		file.close();
 	}
@@ -848,6 +873,16 @@ void Account::sendPingPacket()
 	}
 }
 
+void Account::startHubLookup()
+{
+	m_blinkTimer.start(protocol()->core()->setting(KittySDK::Settings::S_BLINKING_SPEED, 500).toInt());
+
+	//let's look for a server
+	KittyGG::HUBLookup *lookup = new KittyGG::HUBLookup();
+	connect(lookup, SIGNAL(serverFound(QString)), SLOT(connectToHost(QString)));
+	QThreadPool::globalInstance()->start(lookup);
+}
+
 void Account::readSocket()
 {
 	m_parser->append(m_socket->readAll());
@@ -860,12 +895,21 @@ void Account::disconnected()
 
 	m_pingTimer.stop();
 
-	m_status = KittyGG::Status::Unavailable;
-	changeContactStatus(uin(), m_status, m_description);
+	if(m_socket->error() != QAbstractSocket::RemoteHostClosedError) {
+		m_status = KittyGG::Status::Unavailable;
+	}
+
+	changeContactStatus(uin(), KittyGG::Status::Unavailable, m_description);
 
 	//all contacts go bye bye
 	foreach(KittySDK::IContact *cnt, m_contacts) {
 		dynamic_cast<Contact*>(cnt)->changeStatus(KittyGG::Status::Unavailable, "");
+	}
+
+	if(m_socket->error() == QAbstractSocket::RemoteHostClosedError) {
+		if(protocol()->core()->setting(KittySDK::Settings::S_RECONNECT, true).toBool()) {
+			startHubLookup();
+		}
 	}
 }
 
@@ -891,6 +935,7 @@ void Account::stateChanged(QAbstractSocket::SocketState socketState)
 
 void Account::connectToHost(const QString &hostname)
 {
+	//qDebug() << "CONNECT TO" << hostname;
 	if(!hostname.isEmpty()) {
 		if(m_useSSL) {
 			m_socket->connectToHostEncrypted(hostname, 443);
@@ -907,6 +952,29 @@ void Account::updateAvatars()
 	foreach(KittySDK::IContact *cnt, m_contacts) {
 		if(Contact *contact = qobject_cast<Contact*>(cnt)) {
 			contact->updateAvatar();
+		}
+	}
+}
+
+void Account::checkMsgAcks()
+{
+	foreach(AckItem *ack, m_ackList) {
+		ack->timer++;
+
+		if(ack->timer > 10) {
+			QString body = ack->msg;
+			if(body.length() > 15) {
+				body = body.left(15) + "...";
+			}
+
+			KittySDK::IMessage msg(ack->contact, me());
+			msg.setBody(tr("Wiadomość prawdopodobnie nie została wysłana") + ":" + body);
+			msg.setDirection(KittySDK::IMessage::System);
+
+			emit messageReceived(msg);
+
+			m_ackList.removeOne(ack);
+			delete ack;
 		}
 	}
 }
